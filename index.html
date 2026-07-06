@@ -117,36 +117,36 @@ input:focus, select:focus { outline: none; border-color: var(--primary); backgro
 .add-row input { flex: 1; }
 .add-row button { width: auto; padding: 0 18px; }
 
-/* Round table */
-.table-wrap { position: relative; width: 100%; max-width: 340px; margin: 0 auto; aspect-ratio: 1; }
-.table-circle {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
-    width: 52%; height: 52%; border-radius: 50%;
+/* Rectangle table with people around it */
+.table-wrap { position: relative; width: 100%; max-width: 380px; margin: 0 auto; aspect-ratio: 3 / 2; }
+.table-rect {
+    position: absolute; left: 18%; top: 27%; width: 64%; height: 46%;
+    border-radius: 14px;
     background: radial-gradient(circle at 35% 30%, #2e7d4f, #1b5e35);
     border: 6px solid #7a4f28;
     display: flex; align-items: center; justify-content: center;
-    color: rgba(255,255,255,0.85); font-weight: 800; font-size: 12px; text-align: center;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+    color: rgba(255,255,255,0.85); font-weight: 800; font-size: 12px; letter-spacing: 1.5px; text-align: center;
+    box-shadow: inset 0 0 22px rgba(0,0,0,0.35);
 }
 .seat {
-    position: absolute; width: 62px; height: 62px; margin: -31px 0 0 -31px;
-    border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
-    color: white; font-weight: 700; font-size: 10px; text-align: center; padding: 3px;
-    border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.25); overflow: hidden;
+    position: absolute; width: 66px; margin: -30px 0 0 -33px;
+    display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
 }
-.seat.t1 { background: var(--blue); }
-.seat.t2 { background: var(--red); }
-.seat .seat-num { font-size: 8px; opacity: 0.8; }
-.seat .seat-name { font-size: 10px; line-height: 1.1; word-break: break-word; max-height: 24px; overflow: hidden; }
-.seat { cursor: pointer; }
-.seat.empty { opacity: 0.6; border-style: dashed; }
-.seat.empty .seat-name { font-size: 18px; font-weight: 800; }
+.seat .person { width: 30px; height: 30px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); }
+.seat.t1 .person { color: var(--blue); }
+.seat.t2 .person { color: var(--red); }
+.seat.empty .person { color: #9aa5b1; }
+.seat .seat-name {
+    font-size: 10px; font-weight: 700; line-height: 1.1; text-align: center;
+    max-width: 66px; word-break: break-word; color: var(--text);
+    background: rgba(255,255,255,0.9); border-radius: 6px; padding: 1px 5px;
+}
+.seat.empty .seat-name { color: var(--muted); font-weight: 600; background: rgba(255,255,255,0.7); }
 /* invisible native select overlaid on each seat so tapping the seat opens a name picker */
 .seat-select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; background: transparent; -webkit-appearance: none; appearance: none; }
-.seat-tag { display: block; text-align: center; font-size: 11px; font-weight: 700; color: var(--text); margin: 8px auto 0; }
 .collapse-btn { display: flex; justify-content: space-between; align-items: center; }
 .collapse-btn .chev { font-size: 12px; }
-.legend { display: flex; justify-content: center; gap: 18px; margin-top: 6px; font-size: 12px; font-weight: 600; }
+.legend { display: flex; justify-content: center; gap: 18px; margin-top: 10px; font-size: 12px; font-weight: 600; }
 .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
 
 .badge {
@@ -774,33 +774,51 @@ function copyJson() {
 
 /* ---------- rendering ---------- */
 function renderScoreboard() {
+    const el = document.getElementById('scoreboard');
+    // The live score only matters while setting up / playing on the New game tab.
+    if (state.activeTab !== 'game') { el.style.display = 'none'; return; }
+    el.style.display = 'flex';
     const week = currentWeek();
     const active = week && !week.completed;
     const t1 = active ? week.teamScores.team1 : 6;
     const t2 = active ? week.teamScores.team2 : 6;
-    document.getElementById('scoreboard').innerHTML =
+    el.innerHTML =
         '<div class="sb-team"><div class="sb-label">Team 1</div><div class="sb-score t1">' + t1 + '</div></div>' +
         '<div class="sb-vs">' + (active ? 'Week ' + week.week : 'Ready') + '</div>' +
         '<div class="sb-team"><div class="sb-label">Team 2</div><div class="sb-score t2">' + t2 + '</div></div>';
 }
 
-function renderRoundTable() {
+const PERSON_SVG = '<svg class="person" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+
+// Position seat i of n evenly around the perimeter of the table rectangle.
+function seatPos(i, n) {
+    const L = 10, R = 90, T = 12, B = 88;
+    const w = R - L, h = B - T, perim = 2 * (w + h);
+    let d = ((i + 0.5) / n) * perim;
+    if (d <= w) return { x: L + d, y: T };
+    d -= w;
+    if (d <= h) return { x: R, y: T + d };
+    d -= h;
+    if (d <= w) return { x: R - d, y: B };
+    d -= w;
+    return { x: L, y: B - d };
+}
+
+function renderTable() {
     const n = state.playerCount;
     let seatsHtml = '';
     for (let i = 0; i < n; i++) {
-        const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
-        const x = 50 + 42 * Math.cos(angle);
-        const y = 50 + 42 * Math.sin(angle);
+        const { x, y } = seatPos(i, n);
         const name = seatName(i);
         // Tap the seat -> the overlaid (invisible) native select opens a name picker.
         seatsHtml += '<div class="seat ' + (i % 2 === 0 ? 't1' : 't2') + (name ? '' : ' empty') +
             '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;">' +
-            '<span class="seat-num">S' + (i + 1) + '</span>' +
-            '<span class="seat-name">' + (name ? esc(name) : '+') + '</span>' +
+            PERSON_SVG +
+            '<span class="seat-name">' + (name ? esc(name) : 'Seat ' + (i + 1)) + '</span>' +
             '<select class="seat-select" aria-label="Seat ' + (i + 1) + '" onchange="setSeat(' + i + ', this.value)">' + seatOptions(i) + '</select>' +
             '</div>';
     }
-    return '<div class="table-wrap"><div class="table-circle">THURUPPU</div>' + seatsHtml + '</div>' +
+    return '<div class="table-wrap"><div class="table-rect">THURUPPU</div>' + seatsHtml + '</div>' +
         '<div class="hint" style="text-align:center;">Tap a seat to choose a player.</div>' +
         '<div class="legend"><span><span class="dot" style="background:var(--blue)"></span>Team 1</span>' +
         '<span><span class="dot" style="background:var(--red)"></span>Team 2</span></div>';
@@ -857,7 +875,7 @@ function renderGameTab() {
             '<button class="' + (state.playerCount === c ? 'on' : '') + '" onclick="setPlayerCount(' + c + ')">' + c + '</button>').join('') +
         '</div>' +
         '<div class="hint">' + (state.playerCount === 10 ? '10 players: 6 cards each' : state.playerCount + ' players: 8 cards each') + ' \u00b7 Alternate seats = alternate teams</div>' +
-        '<div style="margin:14px 0;">' + renderRoundTable() + '</div>' +
+        '<div style="margin:14px 0;">' + renderTable() + '</div>' +
         '<div class="row" style="margin-bottom:10px;">' +
         '<button class="btn subtle" onclick="autoFill()">Auto-fill seats</button>' +
         '<button class="btn subtle" onclick="clearSeats()">Clear seats</button></div>' +
