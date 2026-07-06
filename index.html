@@ -128,24 +128,32 @@ input:focus, select:focus { outline: none; border-color: var(--primary); backgro
     color: rgba(255,255,255,0.85); font-weight: 800; font-size: 12px; letter-spacing: 1.5px; text-align: center;
     box-shadow: inset 0 0 22px rgba(0,0,0,0.35);
 }
-.seat {
-    position: absolute; width: 70px;
-    display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
-}
-/* Anchor each seat to the table edge so the block sits fully outside the table. */
+/* Fixed-size box anchored to a table edge. The icon and name are absolutely
+   placed inside it, so the icon's position never depends on the name content
+   (it stays put whether the seat is empty or assigned). */
+.seat { position: absolute; width: 66px; height: 48px; cursor: pointer; }
 .seat.top    { transform: translate(-50%, -100%); }
-.seat.bottom { transform: translate(-50%, 0); flex-direction: column-reverse; }
+.seat.bottom { transform: translate(-50%, 0); }
 .seat.left   { transform: translate(-100%, -50%); }
 .seat.right  { transform: translate(0, -50%); }
-.seat .person { width: 26px; height: 26px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); }
+.seat .person {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    width: 26px; height: 26px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+}
+.seat .seat-name {
+    position: absolute; left: 50%; transform: translateX(-50%);
+    width: 66px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    font-size: 10px; font-weight: 700; height: 16px; line-height: 16px; color: var(--text);
+    background: rgba(255,255,255,0.9); border-radius: 6px;
+}
+/* Element nearest the felt on each side (name hugs the table; icon points outward). */
+.seat.top .person, .seat.left .person, .seat.right .person { top: 0; }
+.seat.top .seat-name, .seat.left .seat-name, .seat.right .seat-name { bottom: 0; }
+.seat.bottom .person { bottom: 0; }
+.seat.bottom .seat-name { top: 0; }
 .seat.t1 .person { color: var(--blue); }
 .seat.t2 .person { color: var(--red); }
 .seat.empty .person { color: #9aa5b1; }
-.seat .seat-name {
-    font-size: 10px; font-weight: 700; height: 16px; line-height: 16px; text-align: center;
-    max-width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text);
-    background: rgba(255,255,255,0.9); border-radius: 6px; padding: 0 6px;
-}
 .seat.empty .seat-name { color: var(--muted); font-weight: 600; background: rgba(255,255,255,0.7); }
 /* invisible native select overlaid on each seat so tapping the seat opens a name picker */
 .seat-select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; background: transparent; -webkit-appearance: none; appearance: none; }
