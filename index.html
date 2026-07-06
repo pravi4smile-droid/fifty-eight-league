@@ -112,6 +112,7 @@ input:focus, select:focus { outline: none; border-color: var(--primary); backgro
     display: flex; align-items: center; gap: 6px;
 }
 .chip .x { cursor: pointer; color: var(--red); font-weight: 800; }
+.chip .edit { cursor: pointer; color: var(--blue); font-size: 12px; }
 .add-row { display: flex; gap: 8px; }
 .add-row input { flex: 1; }
 .add-row button { width: auto; padding: 0 18px; }
@@ -278,7 +279,9 @@ let state = {
     activeTab: 'game',
     newPlayerName: '',
     showPast: false,
-    past: { date: '', team: {}, score1: '', score2: '', points: {} }
+    past: { date: '', team: {}, score1: '', score2: '', points: {} },
+    editWeek: null,
+    editBuf: null
 };
 
 /* ---------- persistence ---------- */
@@ -450,6 +453,41 @@ function removeRosterPlayer(name) {
     persist();
     render();
 }
+function renameRosterPlayer(oldName) {
+    const newName = (prompt('Rename "' + oldName + '" to:', oldName) || '').trim();
+    if (!newName || newName === oldName) return;
+    if (state.data.roster.includes(newName)) { toast(newName + ' is already in the roster'); return; }
+    const map = s => (s === oldName ? newName : s);
+
+    state.data.roster = state.data.roster.map(map).sort((a, b) => a.localeCompare(b));
+    state.seats = state.seats.map(map);
+
+    if (state.past) {
+        if (state.past.team && state.past.team[oldName] !== undefined) {
+            state.past.team[newName] = state.past.team[oldName]; delete state.past.team[oldName];
+        }
+        if (state.past.points && state.past.points[oldName] !== undefined) {
+            state.past.points[newName] = state.past.points[oldName]; delete state.past.points[oldName];
+        }
+    }
+
+    // Propagate the rename through all recorded history so stats stay attached.
+    state.data.season.forEach(w => {
+        if (w.players) {
+            w.players.team1 = (w.players.team1 || []).map(map);
+            w.players.team2 = (w.players.team2 || []).map(map);
+        }
+        (w.games || []).forEach(g => { g.team1 = (g.team1 || []).map(map); g.team2 = (g.team2 || []).map(map); });
+        (w.rounds || []).forEach(r => { r.winnerPlayers = (r.winnerPlayers || []).map(map); });
+        if (w.finalTally && w.finalTally[oldName] !== undefined) {
+            w.finalTally[newName] = w.finalTally[oldName]; delete w.finalTally[oldName];
+        }
+    });
+
+    persist();
+    render();
+    toast('Renamed ' + oldName + ' to ' + newName);
+}
 
 /* ---------- add a past game day ---------- */
 function togglePastForm() {
@@ -507,6 +545,60 @@ function savePastDay() {
     state.showPast = false;
     persist(); render();
     toast('Past game day saved for ' + week.date);
+}
+
+/* ---------- edit a previous week's points ---------- */
+function editWeekOpen(idx) {
+    const w = state.data.season[idx];
+    const ft = w.finalTally || {};
+    const points = {};
+    weekPlayers(w).forEach(p => {
+        // For manual weeks, leave a player's box blank when their stored value is
+        // just the team-score default, so editing the team score re-propagates.
+        let show = (ft[p] !== undefined) ? String(ft[p]) : '';
+        if (w.manual) {
+            const teamScore = (w.players.team1 || []).includes(p) ? w.teamScores.team1 : w.teamScores.team2;
+            if (ft[p] === teamScore) show = '';
+        }
+        points[p] = show;
+    });
+    state.editWeek = idx;
+    state.editBuf = {
+        score1: w.manual ? String(w.teamScores.team1) : '',
+        score2: w.manual ? String(w.teamScores.team2) : '',
+        points
+    };
+    renderSeasonTab();
+}
+function editWeekCancel() { state.editWeek = null; state.editBuf = null; renderSeasonTab(); }
+function setEditScore(which, v) { state.editBuf['score' + which] = v; }
+function setEditPoints(name, v) { state.editBuf.points[name] = v; }
+function editWeekSave() {
+    const idx = state.editWeek;
+    const w = state.data.season[idx];
+    if (!w) { editWeekCancel(); return; }
+
+    if (w.manual) {
+        const s1 = parseFloat(state.editBuf.score1), s2 = parseFloat(state.editBuf.score2);
+        w.teamScores = { team1: isNaN(s1) ? 0 : s1, team2: isNaN(s2) ? 0 : s2 };
+        const ft = {};
+        (w.players.team1 || []).forEach(p => { const v = parseFloat(state.editBuf.points[p]); ft[p] = isNaN(v) ? w.teamScores.team1 : v; });
+        (w.players.team2 || []).forEach(p => { const v = parseFloat(state.editBuf.points[p]); ft[p] = isNaN(v) ? w.teamScores.team2 : v; });
+        w.finalTally = ft;
+        w.rounds = [];
+        if (w.teamScores.team1 !== w.teamScores.team2) {
+            const winner = w.teamScores.team1 > w.teamScores.team2 ? 'team1' : 'team2';
+            w.rounds.push({ winner, winnerPlayers: (winner === 'team1' ? w.players.team1 : w.players.team2).slice() });
+        }
+    } else {
+        const ft = {};
+        weekPlayers(w).forEach(p => { const v = parseFloat(state.editBuf.points[p]); if (!isNaN(v)) ft[p] = v; });
+        w.finalTally = ft;
+    }
+
+    state.editWeek = null; state.editBuf = null;
+    persist(); render();
+    toast('Week ' + w.week + ' updated');
 }
 
 /* ---------- actions ---------- */
@@ -784,13 +876,17 @@ function renderGameTab() {
 
 function renderRosterTab() {
     const rosterChips = state.data.roster.length
-        ? '<div class="roster-chips">' + state.data.roster.map(p =>
-            '<span class="chip">' + esc(p) + '<span class="x" onclick="removeRosterPlayer(\'' + esc(p).replace(/'/g, "\\'") + '\')">&times;</span></span>').join('') + '</div>'
+        ? '<div class="roster-chips">' + state.data.roster.map(p => {
+            const arg = "'" + esc(p).replace(/'/g, "\\'") + "'";
+            return '<span class="chip">' + esc(p) +
+                '<span class="edit" title="Rename" onclick="renameRosterPlayer(' + arg + ')">&#9998;</span>' +
+                '<span class="x" title="Remove" onclick="removeRosterPlayer(' + arg + ')">&times;</span></span>';
+        }).join('') + '</div>'
         : '<div class="meta">No players yet. Add your regulars once &mdash; they will be remembered across game nights.</div>';
 
     document.getElementById('tab-roster').innerHTML =
         '<div class="card"><h3>Roster (' + state.data.roster.length + ' players)</h3>' +
-        '<div class="hint" style="margin-bottom:12px;">Your regular players. Add them once here &mdash; you rarely need to change this. Removing a player keeps past game history.</div>' +
+        '<div class="hint" style="margin-bottom:12px;">Your regular players. Tap &#9998; to rename (updates past games too) or &times; to remove. Removing a player keeps past game history.</div>' +
         rosterChips +
         '<div class="add-row" style="margin-top:12px;">' +
         '<input id="new-player" type="text" placeholder="Add player name" onkeydown="if(event.key===\'Enter\')addRosterPlayer()">' +
