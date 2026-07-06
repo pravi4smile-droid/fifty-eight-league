@@ -472,11 +472,11 @@ function savePastDay() {
     const s1 = parseFloat(state.past.score1), s2 = parseFloat(state.past.score2);
     const teamScores = { team1: isNaN(s1) ? 0 : s1, team2: isNaN(s2) ? 0 : s2 };
 
-    const finalTally = {}; let anyPts = false;
-    team1.concat(team2).forEach(p => {
-        const v = parseFloat(state.past.points[p]);
-        if (!isNaN(v)) { finalTally[p] = v; anyPts = true; }
-    });
+    // Everyone on a team gets that team's score for the week, unless an
+    // individual override was entered for that player.
+    const finalTally = {};
+    team1.forEach(p => { const v = parseFloat(state.past.points[p]); finalTally[p] = isNaN(v) ? teamScores.team1 : v; });
+    team2.forEach(p => { const v = parseFloat(state.past.points[p]); finalTally[p] = isNaN(v) ? teamScores.team2 : v; });
 
     const rounds = [];
     if (teamScores.team1 !== teamScores.team2) {
@@ -487,9 +487,8 @@ function savePastDay() {
     const week = {
         week: state.data.season.length + 1,
         date: state.past.date, manual: true, completed: true,
-        games: [], players: { team1, team2 }, teamScores, rounds
+        games: [], players: { team1, team2 }, teamScores, rounds, finalTally
     };
-    if (anyPts) week.finalTally = finalTally;
 
     state.data.season.push(week);
     renumberSeason();
@@ -877,7 +876,7 @@ function pastFormHtml() {
             '<button class="' + (t === 'team2' ? 'on-t2' : '') + '" onclick="setPastTeam(' + arg + ',\'team2\')">T2</button>' +
             '</div>' +
             (t
-                ? '<input class="past-pts" type="number" step="any" placeholder="pts" value="' + (state.past.points[p] !== undefined ? esc(state.past.points[p]) : '') + '" oninput="setPastPoints(' + arg + ',this.value)">'
+                ? '<input class="past-pts" type="number" step="any" title="Leave blank to use the team score" placeholder="team" value="' + (state.past.points[p] !== undefined ? esc(state.past.points[p]) : '') + '" oninput="setPastPoints(' + arg + ',this.value)">'
                 : '<span class="past-pts-empty"></span>') +
             '</div>';
     }).join('');
@@ -885,13 +884,15 @@ function pastFormHtml() {
     return '<div class="card"><h3>Add a past game day</h3>' +
         '<label>Game date</label>' +
         '<input type="date" value="' + esc(state.past.date) + '" max="' + new Date().toISOString().split('T')[0] + '" onchange="setPastDate(this.value)">' +
-        '<label style="margin-top:14px;">Who played &amp; on which team?</label>' +
-        '<div class="hint" style="margin-bottom:10px;">Tap T1 or T2 for each player. Points per player are optional and feed the leaderboard.</div>' +
-        rows +
-        '<div class="row" style="margin-top:12px;">' +
-        '<div><label>Team 1 final score</label><input type="number" step="any" value="' + esc(state.past.score1) + '" oninput="setPastScore(1, this.value)"></div>' +
-        '<div><label>Team 2 final score</label><input type="number" step="any" value="' + esc(state.past.score2) + '" oninput="setPastScore(2, this.value)"></div>' +
+        '<label style="margin-top:14px;">Team score for the week</label>' +
+        '<div class="hint" style="margin-bottom:10px;">This score is given to <strong>every player on the team</strong> for the leaderboard.</div>' +
+        '<div class="row">' +
+        '<div><label>Team 1 score</label><input type="number" step="any" value="' + esc(state.past.score1) + '" oninput="setPastScore(1, this.value)"></div>' +
+        '<div><label>Team 2 score</label><input type="number" step="any" value="' + esc(state.past.score2) + '" oninput="setPastScore(2, this.value)"></div>' +
         '</div>' +
+        '<label style="margin-top:14px;">Who played &amp; on which team?</label>' +
+        '<div class="hint" style="margin-bottom:10px;">Tap T1 or T2 for each player. The points box is optional &mdash; leave it blank to use the team score, or type a number to override just that player.</div>' +
+        rows +
         '<button class="btn green" style="margin-top:14px;" onclick="savePastDay()">Save past game day</button>' +
         '<button class="btn subtle" style="margin-top:8px;" onclick="togglePastForm()">Cancel</button>' +
         '</div>';
