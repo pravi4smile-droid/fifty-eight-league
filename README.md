@@ -25,23 +25,12 @@ defaults in the code. In Vercel → Settings → Environment Variables, add
 `AUTH_USER` and `AUTH_PASS`, then redeploy. Without them, the login/data APIs
 return a 500 "not configured" error.
 
-## Auto-deploy via GitHub Actions
+## Auto-deploy
 
-`.github/workflows/deploy.yml` deploys to Vercel on every push to `main`
-(and via manual "Run workflow"). Add these repository secrets under
-**Settings → Secrets and variables → Actions**:
-
-| Secret | Where to get it |
-|---|---|
-| `VERCEL_TOKEN` | https://vercel.com/account/tokens |
-| `VERCEL_ORG_ID` | `vercel link` → `.vercel/project.json`, or Vercel project settings |
-| `VERCEL_PROJECT_ID` | `vercel link` → `.vercel/project.json`, or Vercel project settings |
-
-App secrets (`AUTH_USER`, `AUTH_PASS`, `BLOB_READ_WRITE_TOKEN`) live in Vercel's
-Environment Variables, never in the repo or the workflow.
-
-> Note: Vercel's built-in Git integration also auto-deploys on push. Use either
-> that **or** this workflow — running both just deploys twice.
+Vercel's built-in Git integration deploys automatically on every push to `main`
+once the repo is imported into Vercel (see the deploy steps above). No GitHub
+Actions workflow is needed. App secrets (`AUTH_USER`, `AUTH_PASS`,
+`BLOB_READ_WRITE_TOKEN`) live in Vercel's Environment Variables, never in the repo.
 
 ## Push to GitHub
 
