@@ -129,7 +129,7 @@ input:focus, select:focus { outline: none; border-color: var(--primary); backgro
     box-shadow: inset 0 0 22px rgba(0,0,0,0.35);
 }
 .seat {
-    position: absolute; width: 62px;
+    position: absolute; width: 70px;
     display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
 }
 /* Anchor each seat to the table edge so the block sits fully outside the table. */
@@ -142,9 +142,9 @@ input:focus, select:focus { outline: none; border-color: var(--primary); backgro
 .seat.t2 .person { color: var(--red); }
 .seat.empty .person { color: #9aa5b1; }
 .seat .seat-name {
-    font-size: 10px; font-weight: 700; line-height: 1.1; text-align: center;
-    max-width: 66px; word-break: break-word; color: var(--text);
-    background: rgba(255,255,255,0.9); border-radius: 6px; padding: 1px 5px;
+    font-size: 10px; font-weight: 700; height: 16px; line-height: 16px; text-align: center;
+    max-width: 70px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text);
+    background: rgba(255,255,255,0.9); border-radius: 6px; padding: 0 6px;
 }
 .seat.empty .seat-name { color: var(--muted); font-weight: 600; background: rgba(255,255,255,0.7); }
 /* invisible native select overlaid on each seat so tapping the seat opens a name picker */
