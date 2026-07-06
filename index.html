@@ -129,10 +129,15 @@ input:focus, select:focus { outline: none; border-color: var(--primary); backgro
     box-shadow: inset 0 0 22px rgba(0,0,0,0.35);
 }
 .seat {
-    position: absolute; width: 66px; margin: -30px 0 0 -33px;
+    position: absolute; width: 62px;
     display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer;
 }
-.seat .person { width: 30px; height: 30px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); }
+/* Anchor each seat to the table edge so the block sits fully outside the table. */
+.seat.top    { transform: translate(-50%, -100%); }
+.seat.bottom { transform: translate(-50%, 0); flex-direction: column-reverse; }
+.seat.left   { transform: translate(-100%, -50%); }
+.seat.right  { transform: translate(0, -50%); }
+.seat .person { width: 26px; height: 26px; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25)); }
 .seat.t1 .person { color: var(--blue); }
 .seat.t2 .person { color: var(--red); }
 .seat.empty .person { color: #9aa5b1; }
@@ -795,20 +800,23 @@ const PERSON_SVG = '<svg class="person" viewBox="0 0 24 24" fill="none" stroke="
 // (top L->R, right T->B, bottom R->L, left B->T) so alternate seats = alternate teams.
 // Short sides (left/right) get 1 each; long sides (top/bottom) get the rest.
 // For 10 players: 2 on each short side and 3 on each long side.
+// Table rectangle edges in wrap %, matching .table-rect (left 18% width 64%, top 27% height 46%).
+const T_TOP = 27, T_BOT = 73, T_LEFT = 18, T_RIGHT = 82;
+
 function seatLayout(n) {
     let top, bottom, left, right;
     if (n >= 10) { top = 3; bottom = 3; left = 2; right = 2; }
     else { left = 1; right = 1; const long = n - 2; top = Math.ceil(long / 2); bottom = long - top; }
 
-    const TOP_Y = 13, BOT_Y = 87, LEFT_X = 9, RIGHT_X = 91;
-    const hx = (j, k) => 21 + ((j + 0.5) / k) * (79 - 21); // top/bottom horizontal centres (span ~table width)
-    const vy = (j, k) => 31 + ((j + 0.5) / k) * (69 - 31); // left/right vertical centres (span ~table height)
+    // Distribute along each edge, inset a little from the corners.
+    const hx = (j, k) => (T_LEFT + 4) + ((j + 0.5) / k) * ((T_RIGHT - 4) - (T_LEFT + 4));
+    const vy = (j, k) => (T_TOP + 4) + ((j + 0.5) / k) * ((T_BOT - 4) - (T_TOP + 4));
 
     const pos = [];
-    for (let j = 0; j < top; j++) pos.push({ x: hx(j, top), y: TOP_Y });
-    for (let j = 0; j < right; j++) pos.push({ x: RIGHT_X, y: vy(j, right) });
-    for (let j = 0; j < bottom; j++) pos.push({ x: hx(bottom - 1 - j, bottom), y: BOT_Y });
-    for (let j = 0; j < left; j++) pos.push({ x: LEFT_X, y: vy(left - 1 - j, left) });
+    for (let j = 0; j < top; j++) pos.push({ side: 'top', x: hx(j, top), y: T_TOP - 1 });
+    for (let j = 0; j < right; j++) pos.push({ side: 'right', x: T_RIGHT + 1, y: vy(j, right) });
+    for (let j = 0; j < bottom; j++) pos.push({ side: 'bottom', x: hx(bottom - 1 - j, bottom), y: T_BOT + 1 });
+    for (let j = 0; j < left; j++) pos.push({ side: 'left', x: T_LEFT - 1, y: vy(left - 1 - j, left) });
     return pos;
 }
 
@@ -817,10 +825,10 @@ function renderTable() {
     const positions = seatLayout(n);
     let seatsHtml = '';
     for (let i = 0; i < n; i++) {
-        const { x, y } = positions[i];
+        const { x, y, side } = positions[i];
         const name = seatName(i);
         // Tap the seat -> the overlaid (invisible) native select opens a name picker.
-        seatsHtml += '<div class="seat ' + (i % 2 === 0 ? 't1' : 't2') + (name ? '' : ' empty') +
+        seatsHtml += '<div class="seat ' + side + ' ' + (i % 2 === 0 ? 't1' : 't2') + (name ? '' : ' empty') +
             '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;">' +
             PERSON_SVG +
             '<span class="seat-name">' + (name ? esc(name) : 'Seat ' + (i + 1)) + '</span>' +
