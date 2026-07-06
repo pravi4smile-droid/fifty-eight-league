@@ -138,6 +138,14 @@ input:focus, select:focus { outline: none; border-color: var(--primary); backgro
 .seat.t2 { background: var(--red); }
 .seat .seat-num { font-size: 8px; opacity: 0.8; }
 .seat .seat-name { font-size: 10px; line-height: 1.1; word-break: break-word; max-height: 24px; overflow: hidden; }
+.seat { cursor: pointer; }
+.seat.empty { opacity: 0.6; border-style: dashed; }
+.seat.empty .seat-name { font-size: 18px; font-weight: 800; }
+/* invisible native select overlaid on each seat so tapping the seat opens a name picker */
+.seat-select { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: none; background: transparent; -webkit-appearance: none; appearance: none; }
+.seat-tag { display: block; text-align: center; font-size: 11px; font-weight: 700; color: var(--text); margin: 8px auto 0; }
+.collapse-btn { display: flex; justify-content: space-between; align-items: center; }
+.collapse-btn .chev { font-size: 12px; }
 .legend { display: flex; justify-content: center; gap: 18px; margin-top: 6px; font-size: 12px; font-weight: 600; }
 .legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
 
@@ -278,6 +286,7 @@ let state = {
     bidMade: true,
     activeTab: 'game',
     newPlayerName: '',
+    showSeatList: false,
     showPast: false,
     past: { date: '', team: {}, score1: '', score2: '', points: {} },
     editWeek: null,
@@ -637,6 +646,7 @@ function clearSeats() {
     localSave();
     renderGameTab();
 }
+function toggleSeatList() { state.showSeatList = !state.showSeatList; renderGameTab(); }
 function setBid(v) {
     state.bid = Math.max(28, Math.min(56, parseInt(v) || 28));
     renderBidHint(); renderPreview();
@@ -782,11 +792,16 @@ function renderRoundTable() {
         const x = 50 + 42 * Math.cos(angle);
         const y = 50 + 42 * Math.sin(angle);
         const name = seatName(i);
-        seatsHtml += '<div class="seat ' + (i % 2 === 0 ? 't1' : 't2') + '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;">' +
+        // Tap the seat -> the overlaid (invisible) native select opens a name picker.
+        seatsHtml += '<div class="seat ' + (i % 2 === 0 ? 't1' : 't2') + (name ? '' : ' empty') +
+            '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;">' +
             '<span class="seat-num">S' + (i + 1) + '</span>' +
-            '<span class="seat-name">' + (name ? esc(name) : '?') + '</span></div>';
+            '<span class="seat-name">' + (name ? esc(name) : '+') + '</span>' +
+            '<select class="seat-select" aria-label="Seat ' + (i + 1) + '" onchange="setSeat(' + i + ', this.value)">' + seatOptions(i) + '</select>' +
+            '</div>';
     }
     return '<div class="table-wrap"><div class="table-circle">THURUPPU</div>' + seatsHtml + '</div>' +
+        '<div class="hint" style="text-align:center;">Tap a seat to choose a player.</div>' +
         '<div class="legend"><span><span class="dot" style="background:var(--blue)"></span>Team 1</span>' +
         '<span><span class="dot" style="background:var(--red)"></span>Team 2</span></div>';
 }
@@ -807,7 +822,7 @@ function renderPreview() {
         '<div style="text-align:center;padding:10px;border-radius:10px;background:#f7f8fa;font-weight:800;font-size:18px;color:' + (s.team2 >= 0 ? 'var(--green)' : 'var(--red)') + '">Team 2: ' + (s.team2 > 0 ? '+' : '') + s.team2 + '</div>';
 }
 
-function seatDropdown(i) {
+function seatOptions(i) {
     const current = seatName(i);
     const takenElsewhere = new Set(state.seats.slice(0, state.playerCount).filter((s, j) => s && j !== i));
     let opts = '<option value="">-- select --</option>';
@@ -815,7 +830,10 @@ function seatDropdown(i) {
         if (takenElsewhere.has(p)) return;
         opts += '<option value="' + esc(p) + '"' + (p === current ? ' selected' : '') + '>' + esc(p) + '</option>';
     });
-    return '<select onchange="setSeat(' + i + ', this.value)">' + opts + '</select>';
+    return opts;
+}
+function seatDropdown(i) {
+    return '<select onchange="setSeat(' + i + ', this.value)">' + seatOptions(i) + '</select>';
 }
 
 function renderGameTab() {
@@ -843,7 +861,9 @@ function renderGameTab() {
         '<div class="row" style="margin-bottom:10px;">' +
         '<button class="btn subtle" onclick="autoFill()">Auto-fill seats</button>' +
         '<button class="btn subtle" onclick="clearSeats()">Clear seats</button></div>' +
-        seatsHtml +
+        '<button class="btn subtle collapse-btn" onclick="toggleSeatList()">' +
+        '<span>Assign seats from a list</span><span class="chev">' + (state.showSeatList ? '&#9650;' : '&#9660;') + '</span></button>' +
+        (state.showSeatList ? '<div style="margin-top:10px;">' + seatsHtml + '</div>' : '') +
         '</div>' +
 
         '<div class="card"><h3>The bid</h3>' +
