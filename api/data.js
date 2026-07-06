@@ -1,7 +1,26 @@
 // /api/data — GET loads, POST saves game data to Vercel Blob storage
-import { put, list } from '@vercel/blob';
+import { put, list, del } from '@vercel/blob';
 
 const BLOB_NAME = 'thuruppu-data.json';
+
+// Overwrite the single data blob. Uses allowOverwrite where supported and
+// falls back to delete-then-create so a save can never fail on "already exists".
+async function saveBlob(body) {
+    try {
+        return await put(BLOB_NAME, body, {
+            access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json'
+        });
+    } catch (e) {
+        try {
+            const { blobs } = await list({ prefix: BLOB_NAME });
+            const existing = blobs.find(b => b.pathname === BLOB_NAME);
+            if (existing) await del(existing.url);
+        } catch (_) { /* ignore cleanup errors */ }
+        return await put(BLOB_NAME, body, {
+            access: 'public', addRandomSuffix: false, contentType: 'application/json'
+        });
+    }
+}
 
 function expectedToken() {
     const user = process.env.AUTH_USER;
@@ -31,16 +50,15 @@ export default async function handler(req, res) {
         }
 
         if (req.method === 'POST') {
-            const data = req.body;
+            // req.body is usually parsed by Vercel, but accept a raw string too.
+            let data = req.body;
+            if (typeof data === 'string') {
+                try { data = JSON.parse(data); } catch (_) { data = null; }
+            }
             if (!data || typeof data !== 'object') {
                 return res.status(400).json({ ok: false, error: 'invalid body' });
             }
-            await put(BLOB_NAME, JSON.stringify(data, null, 2), {
-                access: 'public',
-                addRandomSuffix: false,
-                allowOverwrite: true,
-                contentType: 'application/json'
-            });
+            await saveBlob(JSON.stringify(data, null, 2));
             return res.status(200).json({ ok: true, savedAt: new Date().toISOString() });
         }
 

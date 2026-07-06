@@ -366,14 +366,25 @@ function serverSave() {
         try {
             const res = await fetch(API, { method: 'POST', headers: authHeaders(), body: JSON.stringify(state.data) });
             if (res.status === 401) { showLogin(true); setOnline(false); return; }
-            setOnline(res.ok);
-        } catch (e) { setOnline(false); }
+            if (!res.ok) {
+                let msg = 'save failed (' + res.status + ')';
+                try { const j = await res.json(); if (j && j.error) msg = j.error; } catch (e) {}
+                setOnline(false, msg);
+                return;
+            }
+            setOnline(true);
+        } catch (e) { setOnline(false, 'network error'); }
     }, 400);
 }
-function setOnline(on) {
+let wasOnline = null;
+function setOnline(on, detail) {
     const el = document.getElementById('sync-status');
     el.textContent = on ? 'Synced to server' : 'Offline - saved on device';
     el.className = 'sync-status ' + (on ? 'online' : 'offline');
+    if (detail) el.title = detail;
+    // Surface the reason once when a save first drops offline, so it's diagnosable.
+    if (!on && detail && wasOnline !== false) toast('Save not synced: ' + detail);
+    wasOnline = on;
 }
 function persist() { localSave(); serverSave(); }
 
