@@ -604,6 +604,7 @@ function editWeekSave() {
 /* ---------- actions ---------- */
 function switchTab(name) {
     state.activeTab = name;
+    state.editWeek = null; state.editBuf = null;
     ['game','week','season','roster','data'].forEach(t => {
         document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
     });
@@ -1066,10 +1067,13 @@ function renderSeasonTab() {
                 ? 'Entered manually' + (w.finalTally ? ' \u00b7 points recorded &#10003;' : '')
                 : w.games.length + ' games' + (w.finalTally ? ' \u00b7 tally saved &#10003;' : ' \u00b7 tally pending');
 
+            const editing = state.editWeek === i;
             html += '<div class="card">' +
-                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
                 '<strong>Week ' + w.week + (w.manual ? ' <span class="badge manual">manual</span>' : '') + '</strong>' +
-                '<span class="meta">' + w.date + '</span></div>' +
+                '<span style="display:flex;align-items:center;gap:8px;"><span class="meta">' + w.date + '</span>' +
+                (editing ? '' : '<button class="btn small subtle" onclick="editWeekOpen(' + i + ')">Edit points</button>') +
+                '</span></div>' +
                 '<div class="matchup">' +
                 '<div class="team t1' + (s1 > s2 ? ' win' : '') + '"><div class="tlabel">Team 1</div>' +
                 '<div class="tscore" style="color:var(--blue)">' + s1 + '</div>' +
@@ -1081,10 +1085,35 @@ function renderSeasonTab() {
                 '</div>' +
                 '<div class="score-caption">' + caption + '</div>' +
                 '<div class="meta" style="text-align:center;margin-top:8px;">' + footer + '</div>' +
+                (editing ? weekEditHtml(w) : '') +
                 '</div>';
         }
     }
     document.getElementById('tab-season').innerHTML = html;
+}
+
+function weekEditHtml(w) {
+    const isManual = w.manual;
+    const teamScoreRow = isManual
+        ? '<div class="row">' +
+          '<div><label>Team 1 score</label><input type="number" step="any" value="' + esc(state.editBuf.score1) + '" oninput="setEditScore(1, this.value)"></div>' +
+          '<div><label>Team 2 score</label><input type="number" step="any" value="' + esc(state.editBuf.score2) + '" oninput="setEditScore(2, this.value)"></div>' +
+          '</div>' +
+          '<div class="hint" style="margin:8px 0;">Team score applies to everyone on the team. Fill a player box only to override that player.</div>'
+        : '<div class="hint" style="margin:8px 0;">Edit each player\'s points for this week.</div>';
+    const rows = weekPlayers(w).map(p => {
+        const arg = "'" + esc(p).replace(/'/g, "\\'") + "'";
+        const ph = isManual ? 'team' : '0';
+        return '<div class="tally-row"><span class="tname">' + esc(p) + '</span>' +
+            '<input type="number" step="any" placeholder="' + ph + '" value="' + esc(state.editBuf.points[p] || '') + '" oninput="setEditPoints(' + arg + ', this.value)"></div>';
+    }).join('');
+    return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">' +
+        '<label>Edit points for Week ' + w.week + '</label>' +
+        teamScoreRow + rows +
+        '<div class="row" style="margin-top:10px;">' +
+        '<button class="btn subtle" onclick="editWeekCancel()">Cancel</button>' +
+        '<button class="btn blue" onclick="editWeekSave()">Save changes</button>' +
+        '</div></div>';
 }
 
 function renderDataTab() {
@@ -1095,7 +1124,7 @@ function renderDataTab() {
         '<button class="btn blue" onclick="document.getElementById(\'import-file\').click()">&#8593; Import JSON</button>' +
         '</div>' +
         '<input id="import-file" type="file" accept=".json" onchange="importData(event)" style="display:none;">' +
-        '<div class="hint">Export and commit to GitHub for backup. The server also keeps daily backups in data/backups.</div></div>' +
+        '<div class="hint">When signed in and online, every change is saved to Vercel Blob storage (shared across all devices). Export a JSON copy any time for an extra backup.</div></div>' +
         '<div class="card"><h3>Raw data</h3>' +
         '<textarea readonly>' + esc(JSON.stringify(state.data, null, 2)) + '</textarea>' +
         '<button class="btn subtle" style="margin-top:10px;" onclick="copyJson()">Copy to clipboard</button></div>' +
