@@ -1,14 +1,17 @@
-// /api/data — GET loads, POST saves game data to Vercel Blob storage
-import { put, list, del } from '@vercel/blob';
+// /api/data — GET loads, POST saves game data to a PRIVATE Vercel Blob store.
+// Reads are delivered through this function via get() (never a public URL),
+// so the data is only reachable by a logged-in client.
+import { put, list, del, get } from '@vercel/blob';
 
 const BLOB_NAME = 'thuruppu-data.json';
+const ACCESS = 'private';
 
-// Overwrite the single data blob. Uses allowOverwrite where supported and
-// falls back to delete-then-create so a save can never fail on "already exists".
+// Overwrite the single data blob. Uses allowOverwrite and falls back to
+// delete-then-create so a save can never fail on "already exists".
 async function saveBlob(body) {
     try {
         return await put(BLOB_NAME, body, {
-            access: 'public', addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json'
+            access: ACCESS, addRandomSuffix: false, allowOverwrite: true, contentType: 'application/json'
         });
     } catch (e) {
         try {
@@ -17,9 +20,17 @@ async function saveBlob(body) {
             if (existing) await del(existing.url);
         } catch (_) { /* ignore cleanup errors */ }
         return await put(BLOB_NAME, body, {
-            access: 'public', addRandomSuffix: false, contentType: 'application/json'
+            access: ACCESS, addRandomSuffix: false, contentType: 'application/json'
         });
     }
+}
+
+// Read the blob content server-side. Returns the parsed object, or null if absent.
+async function readBlob() {
+    const result = await get(BLOB_NAME, { access: ACCESS });
+    if (!result || !result.stream) return null;
+    const text = await new Response(result.stream).text();
+    return text ? JSON.parse(text) : null;
 }
 
 function expectedToken() {
@@ -40,13 +51,8 @@ export default async function handler(req, res) {
 
     try {
         if (req.method === 'GET') {
-            const { blobs } = await list({ prefix: BLOB_NAME });
-            const blob = blobs.find(b => b.pathname === BLOB_NAME);
-            if (!blob) return res.status(200).json({ season: [], roster: [] });
-            // cache-busting query so we always read the latest version
-            const r = await fetch(blob.url + '?t=' + Date.now());
-            const data = await r.json();
-            return res.status(200).json(data);
+            const data = await readBlob();
+            return res.status(200).json(data || { season: [], roster: [] });
         }
 
         if (req.method === 'POST') {
