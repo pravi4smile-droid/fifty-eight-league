@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thuruppu Game Tracker</title>
+<style>
+:root {
+    --primary: #1e3a5f;
+    --accent: #e67e22;
+    --green: #27ae60;
+    --red: #e74c3c;
+    --blue: #3498db;
+    --bg: #f0f2f5;
+    --card: #ffffff;
+    --text: #1a1a1a;
+    --muted: #6b7280;
+    --border: #e5e7eb;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--bg); margin: 0; color: var(--text); padding-bottom: 70px;
+}
+.container { max-width: 620px; margin: 0 auto; padding: 12px; }
+.header {
+    background: var(--primary); color: white; padding: 14px 18px;
+    border-radius: 12px; margin-bottom: 8px;
+    display: flex; justify-content: space-between; align-items: center;
+}
+.header h1 { margin: 0; font-size: 18px; }
+.sync-status { font-size: 11px; padding: 4px 10px; border-radius: 12px; background: rgba(255,255,255,0.15); }
+.sync-status.online { background: rgba(39,174,96,0.35); }
+.sync-status.offline { background: rgba(230,126,34,0.45); }
+
+.scoreboard-sticky {
+    position: sticky; top: 0; z-index: 50;
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 8px 14px; margin-bottom: 12px;
+    display: flex; align-items: center; justify-content: space-between;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+.sb-team { text-align: center; flex: 1; }
+.sb-label { font-size: 11px; color: var(--muted); }
+.sb-score { font-size: 24px; font-weight: 800; }
+.sb-score.t1 { color: var(--blue); }
+.sb-score.t2 { color: var(--red); }
+.sb-vs { font-size: 12px; color: var(--muted); padding: 0 8px; }
+
+.tabbar {
+    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+    background: var(--card); border-top: 1px solid var(--border);
+    display: flex; max-width: 620px; margin: 0 auto;
+}
+.tabbar button {
+    flex: 1; background: none; border: none; padding: 9px 2px 11px;
+    font-size: 11px; color: var(--muted); cursor: pointer; font-weight: 600;
+}
+.tabbar button .ico { display: block; font-size: 17px; margin-bottom: 2px; }
+.tabbar button.active { color: var(--primary); }
+
+.card {
+    background: var(--card); border: 1px solid var(--border);
+    border-radius: 12px; padding: 16px; margin-bottom: 12px;
+}
+.card h3 { margin: 0 0 12px 0; font-size: 15px; color: var(--primary); }
+label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.3px; }
+input, select {
+    width: 100%; padding: 11px; border: 1.5px solid var(--border);
+    border-radius: 8px; font-size: 15px; font-family: inherit; background: #fafafa;
+}
+input:focus, select:focus { outline: none; border-color: var(--primary); background: white; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.seg { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+.seg button {
+    padding: 10px 4px; border: 1.5px solid var(--border); border-radius: 8px;
+    background: #fafafa; color: var(--muted); font-weight: 600; font-size: 14px; cursor: pointer;
+}
+.seg button.on { background: var(--primary); color: white; border-color: var(--primary); }
+.seg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.seg2 button {
+    padding: 11px 4px; border: 1.5px solid var(--border); border-radius: 8px;
+    background: #fafafa; color: var(--muted); font-weight: 600; font-size: 14px; cursor: pointer;
+}
+.seg2 button.on-t1 { background: var(--blue); color: white; border-color: var(--blue); }
+.seg2 button.on-t2 { background: var(--red); color: white; border-color: var(--red); }
+.seg2 button.on-made { background: var(--green); color: white; border-color: var(--green); }
+.seg2 button.on-lost { background: var(--red); color: white; border-color: var(--red); }
+
+.btn {
+    width: 100%; padding: 13px; border: none; border-radius: 10px;
+    background: var(--primary); color: white; font-size: 15px; font-weight: 700; cursor: pointer;
+}
+.btn:active { transform: scale(0.98); }
+.btn.green { background: var(--green); }
+.btn.blue { background: var(--blue); }
+.btn.subtle { background: #eef1f5; color: var(--primary); }
+.btn.small { width: auto; padding: 6px 12px; font-size: 12px; border-radius: 8px; }
+.btn.danger { background: var(--red); }
+
+.seat-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.seat-row .pill {
+    font-size: 10px; font-weight: 700; padding: 5px 0; border-radius: 8px; min-width: 52px; text-align: center; flex-shrink: 0;
+}
+.pill.t1 { background: #e3f0fb; color: var(--blue); }
+.pill.t2 { background: #fdecea; color: var(--red); }
+.seat-row select { flex: 1; padding: 9px; font-size: 14px; }
+
+.roster-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+    padding: 6px 12px; border-radius: 16px; background: #eef1f5; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; gap: 6px;
+}
+.chip .x { cursor: pointer; color: var(--red); font-weight: 800; }
+.add-row { display: flex; gap: 8px; }
+.add-row input { flex: 1; }
+.add-row button { width: auto; padding: 0 18px; }
+
+/* Round table */
+.table-wrap { position: relative; width: 100%; max-width: 340px; margin: 0 auto; aspect-ratio: 1; }
+.table-circle {
+    position: absolute; left: 50%; top: 50%; transform: translate(-50%,-50%);
+    width: 52%; height: 52%; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #2e7d4f, #1b5e35);
+    border: 6px solid #7a4f28;
+    display: flex; align-items: center; justify-content: center;
+    color: rgba(255,255,255,0.85); font-weight: 800; font-size: 12px; text-align: center;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+}
+.seat {
+    position: absolute; width: 62px; height: 62px; margin: -31px 0 0 -31px;
+    border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 10px; text-align: center; padding: 3px;
+    border: 3px solid white; box-shadow: 0 2px 6px rgba(0,0,0,0.25); overflow: hidden;
+}
+.seat.t1 { background: var(--blue); }
+.seat.t2 { background: var(--red); }
+.seat .seat-num { font-size: 8px; opacity: 0.8; }
+.seat .seat-name { font-size: 10px; line-height: 1.1; word-break: break-word; max-height: 24px; overflow: hidden; }
+.legend { display: flex; justify-content: center; gap: 18px; margin-top: 6px; font-size: 12px; font-weight: 600; }
+.legend .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+
+.badge {
+    display: inline-block; padding: 3px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 700; margin: 2px 4px 2px 0; background: #eef1f5; color: var(--muted);
+}
+.badge.made { background: #e6f7ee; color: var(--green); }
+.badge.lost { background: #fdecea; color: var(--red); }
+.badge.thani { background: #fdf3e6; color: var(--accent); }
+.meta { font-size: 12px; color: var(--muted); }
+.empty { text-align: center; padding: 40px 16px; color: var(--muted); }
+.empty .big { font-size: 34px; margin-bottom: 8px; }
+.game-card { border-left: 4px solid var(--border); }
+.game-card.win-t1 { border-left-color: var(--blue); }
+.game-card.win-t2 { border-left-color: var(--red); }
+.week-title {
+    display: flex; justify-content: space-between; align-items: center;
+    background: var(--primary); color: white; padding: 10px 14px; border-radius: 10px; margin-bottom: 10px;
+    font-weight: 700; font-size: 14px;
+}
+.winner-banner {
+    background: linear-gradient(90deg, #f9e8c9, #fdf3e6); border: 1px solid #f0d9ad;
+    border-radius: 12px; padding: 14px; text-align: center; margin-bottom: 12px;
+}
+.winner-banner .wt { font-size: 12px; color: #9a6b1f; font-weight: 700; text-transform: uppercase; }
+.winner-banner .wn { font-size: 20px; font-weight: 800; color: #7a4f0e; margin-top: 4px; }
+
+.lb-row { display: flex; align-items: center; gap: 10px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.lb-row:last-child { border-bottom: none; }
+.lb-rank { width: 26px; height: 26px; border-radius: 50%; background: #eef1f5; color: var(--muted);
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; flex-shrink: 0; }
+.lb-rank.r1 { background: #ffd700; color: #7a4f0e; }
+.lb-rank.r2 { background: #d9dde3; color: #555; }
+.lb-rank.r3 { background: #e8b98a; color: #6b3f12; }
+.lb-name { flex: 1; font-weight: 600; font-size: 14px; }
+.lb-pts { font-weight: 800; font-size: 15px; }
+.lb-sub { font-size: 11px; color: var(--muted); }
+
+.tally-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.tally-row .tname { flex: 1; font-weight: 600; font-size: 14px; }
+.tally-row input { width: 90px; text-align: center; padding: 8px; }
+
+textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(--border); border-radius: 8px; font-family: monospace; font-size: 11px; }
+.login-overlay {
+    position: absolute; top: 0; left: 0; right: 0; min-height: 100vh; z-index: 500;
+    background: var(--bg); display: flex; align-items: flex-start; justify-content: center; padding-top: 12vh;
+}
+.login-box {
+    background: var(--card); border: 1px solid var(--border); border-radius: 16px;
+    padding: 28px 24px; width: 90%; max-width: 360px; text-align: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+}
+.login-box .logo { font-size: 40px; margin-bottom: 6px; }
+.login-box h2 { margin: 0 0 4px; color: var(--primary); font-size: 20px; }
+.login-box .sub { font-size: 13px; color: var(--muted); margin-bottom: 18px; }
+.login-box input { margin-bottom: 10px; text-align: center; }
+.login-err { color: var(--red); font-size: 13px; font-weight: 600; min-height: 18px; margin-bottom: 8px; }
+.toast {
+    position: fixed; bottom: 78px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: var(--text); color: white; padding: 10px 20px; border-radius: 24px;
+    font-size: 13px; font-weight: 600; opacity: 0; transition: all 0.25s; z-index: 200; pointer-events: none;
+    max-width: 90%; text-align: center;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+</style>
+</head>
+<body>
+<div class="login-overlay" id="login-overlay" style="display:none;">
+    <div class="login-box">
+        <div class="logo">&#127924;</div>
+        <h2>Fifty Eight League</h2>
+        <div class="sub">Thuruppu weekly score tracker</div>
+        <input id="login-user" type="text" placeholder="Username" autocomplete="username">
+        <input id="login-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
+        <div class="login-err" id="login-err"></div>
+        <button class="btn" onclick="doLogin()">Sign in</button>
+    </div>
+</div>
+<div class="container">
+    <div class="header">
+        <h1>&#127924; Thuruppu Tracker</h1>
+        <span class="sync-status" id="sync-status">Connecting...</span>
+    </div>
+    <div class="scoreboard-sticky" id="scoreboard"></div>
+    <div id="tab-game"></div>
+    <div id="tab-week" style="display:none;"></div>
+    <div id="tab-season" style="display:none;"></div>
+    <div id="tab-data" style="display:none;"></div>
+</div>
+
+<div class="tabbar">
+    <button class="active" data-tab="game" onclick="switchTab('game')"><span class="ico">&#10133;</span>New game</button>
+    <button data-tab="week" onclick="switchTab('week')"><span class="ico">&#128203;</span>This week</button>
+    <button data-tab="season" onclick="switchTab('season')"><span class="ico">&#127942;</span>Season</button>
+    <button data-tab="data" onclick="switchTab('data')"><span class="ico">&#128190;</span>Data</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const API = '/api/data';
+let saveTimer = null;
+
+let state = {
+    data: { season: [], roster: [] },
+    playerCount: 10,
+    seats: [],
+    bid: 28,
+    bidType: 'team',
+    bidTeam: 'team1',
+    bidMade: true,
+    activeTab: 'game',
+    newPlayerName: ''
+};
+
+/* ---------- persistence ---------- */
+function localLoad() {
+    try {
+        const saved = localStorage.getItem('thuruppu-data');
+        if (saved) state.data = JSON.parse(saved);
+        if (!state.data.roster) state.data.roster = state.data.savedPlayers || [];
+        const prefs = localStorage.getItem('thuruppu-prefs');
+        if (prefs) {
+            const p = JSON.parse(prefs);
+            state.playerCount = p.playerCount || 10;
+            state.seats = p.seats || [];
+        }
+    } catch (e) {}
+    ensureSeats();
+}
+function localSave() {
+    try {
+        localStorage.setItem('thuruppu-data', JSON.stringify(state.data));
+        localStorage.setItem('thuruppu-prefs', JSON.stringify({ playerCount: state.playerCount, seats: state.seats }));
+    } catch (e) {}
+}
+/* ---------- auth ---------- */
+function getToken() { try { return localStorage.getItem('thuruppu-token') || ''; } catch (e) { return ''; } }
+function setToken(t) { try { t ? localStorage.setItem('thuruppu-token', t) : localStorage.removeItem('thuruppu-token'); } catch (e) {} }
+function authHeaders() { return { 'Content-Type': 'application/json', 'x-auth-token': getToken() }; }
+
+function showLogin(show) {
+    document.getElementById('login-overlay').style.display = show ? 'flex' : 'none';
+}
+
+async function doLogin() {
+    const username = document.getElementById('login-user').value.trim();
+    const password = document.getElementById('login-pass').value;
+    const err = document.getElementById('login-err');
+    err.textContent = '';
+    try {
+        const res = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        const out = await res.json();
+        if (out.ok && out.token) {
+            setToken(out.token);
+            showLogin(false);
+            toast('Welcome!');
+            serverLoad();
+        } else {
+            err.textContent = out.error || 'Wrong username or password';
+        }
+    } catch (e) {
+        err.textContent = 'Cannot reach server. Check connection.';
+    }
+}
+
+function logout() {
+    setToken('');
+    showLogin(true);
+    toast('Signed out');
+}
+
+async function serverLoad() {
+    if (!getToken()) { showLogin(true); setOnline(false); render(); return; }
+    try {
+        const res = await fetch(API, { headers: authHeaders() });
+        if (res.status === 401) { showLogin(true); setOnline(false); render(); return; }
+        if (!res.ok) throw new Error();
+        const serverData = await res.json();
+        if (serverData.season && serverData.season.length > 0) {
+            state.data = serverData;
+            if (!state.data.roster) state.data.roster = [];
+            localSave();
+        } else if (state.data.season.length > 0 || (state.data.roster && state.data.roster.length)) {
+            serverSave();
+        }
+        setOnline(true);
+    } catch (e) { setOnline(false); }
+    render();
+}
+function serverSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(async () => {
+        try {
+            const res = await fetch(API, { method: 'POST', headers: authHeaders(), body: JSON.stringify(state.data) });
+            if (res.status === 401) { showLogin(true); setOnline(false); return; }
+            setOnline(res.ok);
+        } catch (e) { setOnline(false); }
+    }, 400);
+}
+function setOnline(on) {
+    const el = document.getElementById('sync-status');
+    el.textContent = on ? 'Synced to server' : 'Offline - saved on device';
+    el.className = 'sync-status ' + (on ? 'online' : 'offline');
+}
+function persist() { localSave(); serverSave(); }
+
+/* ---------- helpers ---------- */
+function toast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2400);
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function ensureSeats() {
+    while (state.seats.length < state.playerCount) state.seats.push('');
+}
+function seatName(i) { return state.seats[i] || ''; }
+function getTeams() {
+    const team1 = [], team2 = [];
+    for (let i = 0; i < state.playerCount; i++) {
+        const n = seatName(i) || ('Seat ' + (i + 1));
+        (i % 2 === 0 ? team1 : team2).push(n);
+    }
+    return { team1, team2 };
+}
+function seatsFilled() {
+    for (let i = 0; i < state.playerCount; i++) if (!seatName(i)) return false;
+    return true;
+}
+function calcScore(bid, bidType, bidTeam, bidMade) {
+    const high = bid > 40;
+    let bidding, opposite;
+    if (bidType === 'thani') { bidding = bidMade ? 3 : -4; opposite = bidMade ? -3 : 4; }
+    else if (bidMade) { bidding = high ? 2 : 1; opposite = high ? -2 : -1; }
+    else { bidding = high ? -3 : -2; opposite = high ? 3 : 2; }
+    return { team1: bidTeam === 'team1' ? bidding : opposite, team2: bidTeam === 'team1' ? opposite : bidding };
+}
+function currentWeek() { return state.data.season.length ? state.data.season[state.data.season.length - 1] : null; }
+
+/* ---------- roster ---------- */
+function addRosterPlayer() {
+    const input = document.getElementById('new-player');
+    const name = (input ? input.value : '').trim();
+    if (!name) return;
+    if (state.data.roster.includes(name)) { toast(name + ' is already in the roster'); return; }
+    state.data.roster.push(name);
+    state.data.roster.sort((a,b) => a.localeCompare(b));
+    persist();
+    renderGameTab();
+    toast(name + ' added to roster');
+}
+function removeRosterPlayer(name) {
+    if (!confirm('Remove ' + name + ' from roster? (Past game history is kept)')) return;
+    state.data.roster = state.data.roster.filter(p => p !== name);
+    state.seats = state.seats.map(s => s === name ? '' : s);
+    persist();
+    renderGameTab();
+}
+
+/* ---------- actions ---------- */
+function switchTab(name) {
+    state.activeTab = name;
+    ['game','week','season','data'].forEach(t => {
+        document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
+    });
+    document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
+    render();
+    window.scrollTo(0, 0);
+}
+function setPlayerCount(c) {
+    state.playerCount = c;
+    ensureSeats();
+    localSave();
+    renderGameTab();
+}
+function setSeat(i, v) {
+    state.seats[i] = v;
+    localSave();
+    renderGameTab();
+}
+function autoFill() {
+    const taken = new Set(state.seats.slice(0, state.playerCount).filter(Boolean));
+    const available = state.data.roster.filter(p => !taken.has(p));
+    for (let i = 0; i < state.playerCount; i++) {
+        if (!state.seats[i] && available.length) state.seats[i] = available.shift();
+    }
+    localSave();
+    renderGameTab();
+}
+function clearSeats() {
+    for (let i = 0; i < state.seats.length; i++) state.seats[i] = '';
+    localSave();
+    renderGameTab();
+}
+function setBid(v) {
+    state.bid = Math.max(28, Math.min(56, parseInt(v) || 28));
+    renderBidHint(); renderPreview();
+}
+function setField(f, v) { state[f] = v; renderGameTab(); }
+
+function addGame() {
+    if (!seatsFilled()) { toast('Assign a player to every seat first'); return; }
+    const scores = calcScore(state.bid, state.bidType, state.bidTeam, state.bidMade);
+    let week = currentWeek();
+    const teams = getTeams();
+
+    if (!week || week.completed) {
+        week = { week: state.data.season.length + 1, date: new Date().toISOString().split('T')[0],
+                 games: [], teamScores: { team1: 6, team2: 6 }, players: teams, rounds: [] };
+        state.data.season.push(week);
+    }
+
+    week.games.push({
+        id: Date.now(), playerCount: state.playerCount,
+        team1: teams.team1, team2: teams.team2,
+        bid: state.bid, bidType: state.bidType, bidTeam: state.bidTeam, bidMade: state.bidMade,
+        scores, timestamp: new Date().toISOString()
+    });
+
+    week.teamScores.team1 += scores.team1;
+    week.teamScores.team2 += scores.team2;
+    week.players = teams;
+
+    let resetMsg = '';
+    if (week.teamScores.team1 <= -1 || week.teamScores.team2 <= -1) {
+        const winner = week.teamScores.team1 <= -1 ? 'team2' : 'team1';
+        if (!week.rounds) week.rounds = [];
+        week.rounds.push({ winner, winnerPlayers: teams[winner].slice(), endedAt: new Date().toISOString() });
+        week.teamScores = { team1: 6, team2: 6 };
+        resetMsg = ' \u2014 ' + (winner === 'team1' ? 'Team 1' : 'Team 2') + ' wins the round! Back to 6-6';
+    }
+
+    persist();
+    state.bid = 28; state.bidType = 'team'; state.bidMade = true;
+    render();
+    toast('Game saved' + resetMsg);
+}
+
+function undoLast() {
+    const week = currentWeek();
+    if (!week || week.games.length === 0) { toast('Nothing to undo'); return; }
+    week.games.pop();
+    recalcWeek(week);
+    persist(); render();
+    toast('Last game removed');
+}
+function deleteGame(weekIdx, gameIdx) {
+    if (!confirm('Delete this game? Week scores and rounds will be recalculated.')) return;
+    const week = state.data.season[weekIdx];
+    week.games.splice(gameIdx, 1);
+    recalcWeek(week);
+    persist(); render();
+    toast('Game deleted');
+}
+function recalcWeek(week) {
+    week.teamScores = { team1: 6, team2: 6 };
+    week.rounds = [];
+    week.games.forEach(g => {
+        week.teamScores.team1 += g.scores.team1;
+        week.teamScores.team2 += g.scores.team2;
+        if (week.teamScores.team1 <= -1 || week.teamScores.team2 <= -1) {
+            const winner = week.teamScores.team1 <= -1 ? 'team2' : 'team1';
+            week.rounds.push({ winner, winnerPlayers: (winner === 'team1' ? g.team1 : g.team2).slice() });
+            week.teamScores = { team1: 6, team2: 6 };
+        }
+    });
+}
+
+function endWeek() {
+    const week = currentWeek();
+    if (!week || week.completed) { toast('No active week'); return; }
+    if (!confirm('Close Week ' + week.week + '? Next game will start a fresh week.')) return;
+    week.completed = true;
+    persist(); render();
+    toast('Week ' + week.week + ' closed');
+}
+
+function saveTally(weekIdx) {
+    const week = state.data.season[weekIdx];
+    const inputs = document.querySelectorAll('.tally-input');
+    week.finalTally = {};
+    inputs.forEach(inp => {
+        const v = parseFloat(inp.value);
+        if (!isNaN(v)) week.finalTally[inp.dataset.player] = v;
+    });
+    persist(); render();
+    toast('Final tally saved for Week ' + week.week);
+}
+
+function exportData() {
+    const json = JSON.stringify(state.data, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'thuruppu-backup-' + new Date().toISOString().split('T')[0] + '.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Backup downloaded');
+}
+function importData(ev) {
+    const file = ev.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+        try {
+            state.data = JSON.parse(e.target.result);
+            if (!state.data.roster) state.data.roster = [];
+            persist(); render();
+            toast('Data imported');
+        } catch (err) { toast('Import failed: invalid JSON'); }
+    };
+    reader.readAsText(file);
+}
+function copyJson() {
+    navigator.clipboard.writeText(JSON.stringify(state.data, null, 2)).then(
+        () => toast('Copied to clipboard'), () => toast('Copy not available'));
+}
+
+/* ---------- rendering ---------- */
+function renderScoreboard() {
+    const week = currentWeek();
+    const active = week && !week.completed;
+    const t1 = active ? week.teamScores.team1 : 6;
+    const t2 = active ? week.teamScores.team2 : 6;
+    document.getElementById('scoreboard').innerHTML =
+        '<div class="sb-team"><div class="sb-label">Team 1</div><div class="sb-score t1">' + t1 + '</div></div>' +
+        '<div class="sb-vs">' + (active ? 'Week ' + week.week : 'Ready') + '</div>' +
+        '<div class="sb-team"><div class="sb-label">Team 2</div><div class="sb-score t2">' + t2 + '</div></div>';
+}
+
+function renderRoundTable() {
+    const n = state.playerCount;
+    let seatsHtml = '';
+    for (let i = 0; i < n; i++) {
+        const angle = (i / n) * 2 * Math.PI - Math.PI / 2;
+        const x = 50 + 42 * Math.cos(angle);
+        const y = 50 + 42 * Math.sin(angle);
+        const name = seatName(i);
+        seatsHtml += '<div class="seat ' + (i % 2 === 0 ? 't1' : 't2') + '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;">' +
+            '<span class="seat-num">S' + (i + 1) + '</span>' +
+            '<span class="seat-name">' + (name ? esc(name) : '?') + '</span></div>';
+    }
+    return '<div class="table-wrap"><div class="table-circle">THURUPPU</div>' + seatsHtml + '</div>' +
+        '<div class="legend"><span><span class="dot" style="background:var(--blue)"></span>Team 1</span>' +
+        '<span><span class="dot" style="background:var(--red)"></span>Team 2</span></div>';
+}
+
+function renderBidHint() {
+    const el = document.getElementById('bid-hint');
+    if (!el) return;
+    el.textContent = state.bidType === 'thani'
+        ? 'Thani: win +3 / lose -4 (opposite mirrors)'
+        : (state.bid > 40 ? 'High bid (>40): win +2 / lose -3' : 'Normal bid: win +1 / lose -2');
+}
+function renderPreview() {
+    const el = document.getElementById('preview-strip');
+    if (!el) return;
+    const s = calcScore(state.bid, state.bidType, state.bidTeam, state.bidMade);
+    el.innerHTML =
+        '<div style="text-align:center;padding:10px;border-radius:10px;background:#f7f8fa;font-weight:800;font-size:18px;color:' + (s.team1 >= 0 ? 'var(--green)' : 'var(--red)') + '">Team 1: ' + (s.team1 > 0 ? '+' : '') + s.team1 + '</div>' +
+        '<div style="text-align:center;padding:10px;border-radius:10px;background:#f7f8fa;font-weight:800;font-size:18px;color:' + (s.team2 >= 0 ? 'var(--green)' : 'var(--red)') + '">Team 2: ' + (s.team2 > 0 ? '+' : '') + s.team2 + '</div>';
+}
+
+function seatDropdown(i) {
+    const current = seatName(i);
+    const takenElsewhere = new Set(state.seats.slice(0, state.playerCount).filter((s, j) => s && j !== i));
+    let opts = '<option value="">-- select --</option>';
+    state.data.roster.forEach(p => {
+        if (takenElsewhere.has(p)) return;
+        opts += '<option value="' + esc(p) + '"' + (p === current ? ' selected' : '') + '>' + esc(p) + '</option>';
+    });
+    return '<select onchange="setSeat(' + i + ', this.value)">' + opts + '</select>';
+}
+
+function renderGameTab() {
+    ensureSeats();
+    const rosterChips = state.data.roster.length
+        ? '<div class="roster-chips">' + state.data.roster.map(p =>
+            '<span class="chip">' + esc(p) + '<span class="x" onclick="removeRosterPlayer(\'' + esc(p).replace(/'/g, "\\'") + '\')">&times;</span></span>').join('') + '</div>'
+        : '<div class="meta">No players yet. Add your regulars once - they will be remembered.</div>';
+
+    let seatsHtml = '';
+    for (let i = 0; i < state.playerCount; i++) {
+        seatsHtml += '<div class="seat-row">' +
+            '<span class="pill ' + (i % 2 === 0 ? 't1' : 't2') + '">Seat ' + (i + 1) + '</span>' +
+            seatDropdown(i) + '</div>';
+    }
+
+    document.getElementById('tab-game').innerHTML =
+        '<div class="card"><h3>Roster (' + state.data.roster.length + ' players)</h3>' +
+        rosterChips +
+        '<div class="add-row" style="margin-top:10px;">' +
+        '<input id="new-player" type="text" placeholder="Add player name" onkeydown="if(event.key===\'Enter\')addRosterPlayer()">' +
+        '<button class="btn" onclick="addRosterPlayer()">Add</button></div>' +
+        '</div>' +
+
+        '<div class="card"><h3>Tonight\'s table</h3>' +
+        '<label>How many playing?</label>' +
+        '<div class="seg">' + [4,6,8,10].map(c =>
+            '<button class="' + (state.playerCount === c ? 'on' : '') + '" onclick="setPlayerCount(' + c + ')">' + c + '</button>').join('') +
+        '</div>' +
+        '<div class="hint">' + (state.playerCount === 10 ? '10 players: 6 cards each' : state.playerCount + ' players: 8 cards each') + ' \u00b7 Alternate seats = alternate teams</div>' +
+        '<div style="margin:14px 0;">' + renderRoundTable() + '</div>' +
+        '<div class="row" style="margin-bottom:10px;">' +
+        '<button class="btn subtle" onclick="autoFill()">Auto-fill seats</button>' +
+        '<button class="btn subtle" onclick="clearSeats()">Clear seats</button></div>' +
+        seatsHtml +
+        '</div>' +
+
+        '<div class="card"><h3>The bid</h3>' +
+        '<div class="row">' +
+        '<div><label>Bid amount</label><input type="number" min="28" max="56" value="' + state.bid + '" oninput="setBid(this.value)"></div>' +
+        '<div><label>Bid type</label><select onchange="setField(\'bidType\', this.value)">' +
+        '<option value="team"' + (state.bidType === 'team' ? ' selected' : '') + '>Team bid</option>' +
+        '<option value="thani"' + (state.bidType === 'thani' ? ' selected' : '') + '>Thani (self)</option>' +
+        '</select></div></div>' +
+        '<div class="hint" id="bid-hint"></div>' +
+        '<div style="margin-top:12px;"><label>Bidding team</label>' +
+        '<div class="seg2">' +
+        '<button class="' + (state.bidTeam === 'team1' ? 'on-t1' : '') + '" onclick="setField(\'bidTeam\',\'team1\')">Team 1</button>' +
+        '<button class="' + (state.bidTeam === 'team2' ? 'on-t2' : '') + '" onclick="setField(\'bidTeam\',\'team2\')">Team 2</button>' +
+        '</div></div>' +
+        '<div style="margin-top:12px;"><label>Result</label>' +
+        '<div class="seg2">' +
+        '<button class="' + (state.bidMade ? 'on-made' : '') + '" onclick="setField(\'bidMade\', true)">&#10003; Bid made</button>' +
+        '<button class="' + (!state.bidMade ? 'on-lost' : '') + '" onclick="setField(\'bidMade\', false)">&#10007; Bid lost</button>' +
+        '</div></div>' +
+        '<div class="row" id="preview-strip" style="margin:12px 0;"></div>' +
+        '<button class="btn green" onclick="addGame()">Save game</button>' +
+        '<div class="row" style="margin-top:8px;">' +
+        '<button class="btn subtle" onclick="undoLast()">Undo last game</button>' +
+        '<button class="btn subtle" onclick="endWeek()">End this week</button>' +
+        '</div></div>';
+
+    renderBidHint();
+    renderPreview();
+}
+
+function weekPlayers(week) {
+    const set = new Set();
+    (week.players ? week.players.team1.concat(week.players.team2) : []).forEach(p => set.add(p));
+    week.games.forEach(g => { g.team1.concat(g.team2).forEach(p => set.add(p)); });
+    return Array.from(set);
+}
+
+function gameCardHtml(game, weekIdx, gameIdx, num) {
+    const winT1 = game.scores.team1 > 0;
+    return '<div class="card game-card ' + (winT1 ? 'win-t1' : 'win-t2') + '">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
+        '<div><strong style="font-size:14px;">Game ' + num + '</strong><div class="meta">' +
+        new Date(game.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + ' \u00b7 ' + game.playerCount + ' players</div></div>' +
+        '<button class="btn danger small" onclick="deleteGame(' + weekIdx + ',' + gameIdx + ')">Delete</button></div>' +
+        '<div style="margin:8px 0 4px;">' +
+        '<span class="badge">Bid ' + game.bid + '</span>' +
+        (game.bidType === 'thani' ? '<span class="badge thani">Thani</span>' : '') +
+        '<span class="badge ' + (game.bidMade ? 'made' : 'lost') + '">' + (game.bidMade ? 'Made' : 'Lost') + '</span>' +
+        '<span class="badge">' + (game.bidTeam === 'team1' ? 'Team 1 bid' : 'Team 2 bid') + '</span></div>' +
+        '<div class="meta">T1: ' + game.team1.map(esc).join(', ') + '<br>T2: ' + game.team2.map(esc).join(', ') + '</div>' +
+        '<div style="display:flex;gap:10px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:700;font-size:14px;">' +
+        '<div style="flex:1;text-align:center;color:' + (game.scores.team1 >= 0 ? 'var(--green)' : 'var(--red)') + '">Team 1: ' + (game.scores.team1 > 0 ? '+' : '') + game.scores.team1 + '</div>' +
+        '<div style="flex:1;text-align:center;color:' + (game.scores.team2 >= 0 ? 'var(--green)' : 'var(--red)') + '">Team 2: ' + (game.scores.team2 > 0 ? '+' : '') + game.scores.team2 + '</div>' +
+        '</div></div>';
+}
+
+function renderWeekTab() {
+    const weekIdx = state.data.season.length - 1;
+    const week = weekIdx >= 0 ? state.data.season[weekIdx] : null;
+    let html = '';
+
+    if (!week) {
+        html = '<div class="card"><div class="empty"><div class="big">&#127924;</div>No games yet.<br>Add your first game from the New game tab.</div></div>';
+    } else {
+        const rounds = week.rounds || [];
+        html += '<div class="week-title"><span>Week ' + week.week + (week.completed ? ' (closed)' : '') + '</span><span>' + week.date + '</span></div>';
+
+        if (rounds.length) {
+            html += '<div class="card"><h3>Rounds won this week</h3>' +
+                rounds.map((r, i) => '<div class="meta" style="margin-bottom:4px;">Round ' + (i + 1) + ': <strong style="color:' + (r.winner === 'team1' ? 'var(--blue)' : 'var(--red)') + '">' +
+                    (r.winner === 'team1' ? 'Team 1' : 'Team 2') + '</strong> (' + r.winnerPlayers.map(esc).join(', ') + ')</div>').join('') +
+                '</div>';
+        }
+
+        // Final tally entry
+        const players = weekPlayers(week);
+        if (players.length) {
+            const tally = week.finalTally || {};
+            html += '<div class="card"><h3>End of week - final points tally</h3>' +
+                '<div class="hint" style="margin-bottom:10px;">Enter what each player finished with (points or money). Feeds the season leaderboard.</div>' +
+                players.map(p =>
+                    '<div class="tally-row"><span class="tname">' + esc(p) + '</span>' +
+                    '<input class="tally-input" data-player="' + esc(p) + '" type="number" step="any" placeholder="0" value="' + (tally[p] !== undefined ? tally[p] : '') + '"></div>'
+                ).join('') +
+                '<button class="btn blue" style="margin-top:6px;" onclick="saveTally(' + weekIdx + ')">Save final tally</button>' +
+                '</div>';
+        }
+
+        if (week.games.length === 0) {
+            html += '<div class="card"><div class="empty">No games in this week yet</div></div>';
+        } else {
+            for (let i = week.games.length - 1; i >= 0; i--) {
+                html += gameCardHtml(week.games[i], weekIdx, i, i + 1);
+            }
+        }
+    }
+    document.getElementById('tab-week').innerHTML = html;
+}
+
+function renderSeasonTab() {
+    const season = state.data.season;
+    let html = '';
+
+    if (season.length === 0) {
+        html = '<div class="card"><div class="empty"><div class="big">&#127942;</div>Season stats will appear here once you start playing.</div></div>';
+    } else {
+        // Per-player aggregates
+        const stats = {};
+        function stat(p) {
+            if (!stats[p]) stats[p] = { points: 0, roundWins: 0, weeks: 0, tallied: false };
+            return stats[p];
+        }
+        let totalGames = 0;
+        season.forEach(w => {
+            totalGames += w.games.length;
+            weekPlayers(w).forEach(p => stat(p).weeks++);
+            (w.rounds || []).forEach(r => r.winnerPlayers.forEach(p => stat(p).roundWins++));
+            if (w.finalTally) Object.entries(w.finalTally).forEach(([p, v]) => { stat(p).points += v; stat(p).tallied = true; });
+        });
+
+        const leaderboard = Object.entries(stats)
+            .map(([name, s]) => ({ name, ...s }))
+            .sort((a, b) => b.points - a.points || b.roundWins - a.roundWins);
+
+        if (leaderboard.length) {
+            const top = leaderboard[0];
+            html += '<div class="winner-banner"><div class="wt">Season leader</div><div class="wn">&#127942; ' + esc(top.name) + '</div>' +
+                '<div class="meta">' + (Math.round(top.points * 100) / 100) + ' pts \u00b7 ' + top.roundWins + ' round wins \u00b7 ' + top.weeks + ' weeks played</div></div>';
+
+            html += '<div class="card"><h3>Player leaderboard</h3>' +
+                leaderboard.map((p, i) =>
+                    '<div class="lb-row">' +
+                    '<span class="lb-rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '') + '">' + (i + 1) + '</span>' +
+                    '<span class="lb-name">' + esc(p.name) + '<div class="lb-sub">' + p.roundWins + ' round wins \u00b7 ' + p.weeks + ' weeks</div></span>' +
+                    '<span class="lb-pts" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (Math.round(p.points * 100) / 100) + '</span>' +
+                    '</div>').join('') +
+                '<div class="hint">Points come from the end-of-week tally. Ties broken by round wins.</div></div>';
+        }
+
+        html += '<div class="card"><h3>Season stats</h3>' +
+            '<div class="lb-row"><span class="lb-name">Weeks played</span><span class="lb-pts">' + season.length + '</span></div>' +
+            '<div class="lb-row"><span class="lb-name">Total games</span><span class="lb-pts">' + totalGames + '</span></div>' +
+            '<div class="lb-row"><span class="lb-name">Players in season</span><span class="lb-pts">' + leaderboard.length + '</span></div>' +
+            '</div>';
+
+        for (let i = season.length - 1; i >= 0; i--) {
+            const w = season[i];
+            const rounds = w.rounds || [];
+            const t1r = rounds.filter(r => r.winner === 'team1').length;
+            const t2r = rounds.filter(r => r.winner === 'team2').length;
+            html += '<div class="card">' +
+                '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+                '<strong>Week ' + w.week + '</strong><span class="meta">' + w.date + '</span></div>' +
+                '<div style="display:flex;gap:10px;margin-top:10px;text-align:center;font-weight:800;font-size:18px;">' +
+                '<div style="flex:1;color:var(--blue)">' + t1r + '<div class="meta" style="font-weight:400;">Team 1 rounds</div></div>' +
+                '<div style="flex:1;color:var(--red)">' + t2r + '<div class="meta" style="font-weight:400;">Team 2 rounds</div></div>' +
+                '</div>' +
+                '<div class="meta" style="text-align:center;margin-top:8px;">' + w.games.length + ' games' +
+                (w.finalTally ? ' \u00b7 tally saved &#10003;' : ' \u00b7 tally pending') + '</div>' +
+                '</div>';
+        }
+    }
+    document.getElementById('tab-season').innerHTML = html;
+}
+
+function renderDataTab() {
+    document.getElementById('tab-data').innerHTML =
+        '<div class="card"><h3>Backup and restore</h3>' +
+        '<div class="row">' +
+        '<button class="btn green" onclick="exportData()">&#8595; Export JSON</button>' +
+        '<button class="btn blue" onclick="document.getElementById(\'import-file\').click()">&#8593; Import JSON</button>' +
+        '</div>' +
+        '<input id="import-file" type="file" accept=".json" onchange="importData(event)" style="display:none;">' +
+        '<div class="hint">Export and commit to GitHub for backup. The server also keeps daily backups in data/backups.</div></div>' +
+        '<div class="card"><h3>Raw data</h3>' +
+        '<textarea readonly>' + esc(JSON.stringify(state.data, null, 2)) + '</textarea>' +
+        '<button class="btn subtle" style="margin-top:10px;" onclick="copyJson()">Copy to clipboard</button></div>' +
+        '<div class="card"><h3>Account</h3>' +
+        '<button class="btn danger" onclick="logout()">Sign out</button></div>';
+}
+
+function render() {
+    renderScoreboard();
+    if (state.activeTab === 'game') renderGameTab();
+    if (state.activeTab === 'week') renderWeekTab();
+    if (state.activeTab === 'season') renderSeasonTab();
+    if (state.activeTab === 'data') renderDataTab();
+}
+
+localLoad();
+render();
+serverLoad();
+</script>
+</body>
+</html>
