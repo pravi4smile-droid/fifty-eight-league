@@ -788,27 +788,36 @@ function renderScoreboard() {
         '<div class="sb-team"><div class="sb-label">Team 2</div><div class="sb-score t2">' + t2 + '</div></div>';
 }
 
-const PERSON_SVG = '<svg class="person" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>';
+// Outline person icon (no fill) — team colour is applied via stroke=currentColor.
+const PERSON_SVG = '<svg class="person" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
 
-// Position seat i of n evenly around the perimeter of the table rectangle.
-function seatPos(i, n) {
-    const L = 10, R = 90, T = 12, B = 88;
-    const w = R - L, h = B - T, perim = 2 * (w + h);
-    let d = ((i + 0.5) / n) * perim;
-    if (d <= w) return { x: L + d, y: T };
-    d -= w;
-    if (d <= h) return { x: R, y: T + d };
-    d -= h;
-    if (d <= w) return { x: R - d, y: B };
-    d -= w;
-    return { x: L, y: B - d };
+// Seats placed on the edges of the table rectangle, in clockwise index order
+// (top L->R, right T->B, bottom R->L, left B->T) so alternate seats = alternate teams.
+// Short sides (left/right) get 1 each; long sides (top/bottom) get the rest.
+// For 10 players: 2 on each short side and 3 on each long side.
+function seatLayout(n) {
+    let top, bottom, left, right;
+    if (n >= 10) { top = 3; bottom = 3; left = 2; right = 2; }
+    else { left = 1; right = 1; const long = n - 2; top = Math.ceil(long / 2); bottom = long - top; }
+
+    const TOP_Y = 13, BOT_Y = 87, LEFT_X = 9, RIGHT_X = 91;
+    const hx = (j, k) => 21 + ((j + 0.5) / k) * (79 - 21); // top/bottom horizontal centres (span ~table width)
+    const vy = (j, k) => 31 + ((j + 0.5) / k) * (69 - 31); // left/right vertical centres (span ~table height)
+
+    const pos = [];
+    for (let j = 0; j < top; j++) pos.push({ x: hx(j, top), y: TOP_Y });
+    for (let j = 0; j < right; j++) pos.push({ x: RIGHT_X, y: vy(j, right) });
+    for (let j = 0; j < bottom; j++) pos.push({ x: hx(bottom - 1 - j, bottom), y: BOT_Y });
+    for (let j = 0; j < left; j++) pos.push({ x: LEFT_X, y: vy(left - 1 - j, left) });
+    return pos;
 }
 
 function renderTable() {
     const n = state.playerCount;
+    const positions = seatLayout(n);
     let seatsHtml = '';
     for (let i = 0; i < n; i++) {
-        const { x, y } = seatPos(i, n);
+        const { x, y } = positions[i];
         const name = seatName(i);
         // Tap the seat -> the overlaid (invisible) native select opens a name picker.
         seatsHtml += '<div class="seat ' + (i % 2 === 0 ? 't1' : 't2') + (name ? '' : ' empty') +
