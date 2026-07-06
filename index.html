@@ -203,6 +203,29 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 .hint { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+/* Matchup (teams per game week) */
+.matchup { display: flex; align-items: stretch; gap: 8px; margin-top: 10px; }
+.matchup .team { flex: 1; background: #f7f8fa; border-radius: 10px; padding: 10px; text-align: center; }
+.matchup .team.t1 { border-top: 3px solid var(--blue); }
+.matchup .team.t2 { border-top: 3px solid var(--red); }
+.matchup .team.win { background: #eef7f0; }
+.matchup .team .tlabel { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; }
+.matchup .team.t1 .tlabel { color: var(--blue); }
+.matchup .team.t2 .tlabel { color: var(--red); }
+.matchup .team .tscore { font-size: 26px; font-weight: 800; margin: 2px 0; }
+.matchup .team .tplayers { font-size: 12px; color: var(--text); line-height: 1.35; }
+.matchup .vs { align-self: center; font-size: 12px; color: var(--muted); font-weight: 700; }
+.score-caption { text-align: center; font-size: 11px; color: var(--muted); margin-top: 6px; }
+
+/* Add past game day */
+.past-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.past-row .past-name { flex: 1; font-size: 14px; font-weight: 600; overflow: hidden; text-overflow: ellipsis; }
+.past-seg { width: 116px; flex-shrink: 0; }
+.past-seg button { padding: 8px 4px; font-size: 13px; }
+.past-pts { width: 68px; flex-shrink: 0; padding: 8px; text-align: center; }
+.past-pts-empty { width: 68px; flex-shrink: 0; }
+.badge.manual { background: #eae6fb; color: #6b46c1; }
 </style>
 </head>
 <body>
@@ -226,6 +249,7 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
     <div id="tab-game"></div>
     <div id="tab-week" style="display:none;"></div>
     <div id="tab-season" style="display:none;"></div>
+    <div id="tab-roster" style="display:none;"></div>
     <div id="tab-data" style="display:none;"></div>
 </div>
 
@@ -233,6 +257,7 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
     <button class="active" data-tab="game" onclick="switchTab('game')"><span class="ico">&#10133;</span>New game</button>
     <button data-tab="week" onclick="switchTab('week')"><span class="ico">&#128203;</span>This week</button>
     <button data-tab="season" onclick="switchTab('season')"><span class="ico">&#127942;</span>Season</button>
+    <button data-tab="roster" onclick="switchTab('roster')"><span class="ico">&#128101;</span>Roster</button>
     <button data-tab="data" onclick="switchTab('data')"><span class="ico">&#128190;</span>Data</button>
 </div>
 
@@ -251,7 +276,9 @@ let state = {
     bidTeam: 'team1',
     bidMade: true,
     activeTab: 'game',
-    newPlayerName: ''
+    newPlayerName: '',
+    showPast: false,
+    past: { date: '', team: {}, score1: '', score2: '', points: {} }
 };
 
 /* ---------- persistence ---------- */
@@ -381,7 +408,16 @@ function calcScore(bid, bidType, bidTeam, bidMade) {
     else { bidding = high ? -3 : -2; opposite = high ? 3 : 2; }
     return { team1: bidTeam === 'team1' ? bidding : opposite, team2: bidTeam === 'team1' ? opposite : bidding };
 }
-function currentWeek() { return state.data.season.length ? state.data.season[state.data.season.length - 1] : null; }
+function currentWeek() {
+    const s = state.data.season;
+    for (let i = s.length - 1; i >= 0; i--) if (!s[i].completed) return s[i];
+    return null;
+}
+function currentWeekIdx() {
+    const s = state.data.season;
+    for (let i = s.length - 1; i >= 0; i--) if (!s[i].completed) return i;
+    return s.length - 1;
+}
 
 /* ---------- roster ---------- */
 function addRosterPlayer() {
@@ -392,21 +428,81 @@ function addRosterPlayer() {
     state.data.roster.push(name);
     state.data.roster.sort((a,b) => a.localeCompare(b));
     persist();
-    renderGameTab();
+    render();
     toast(name + ' added to roster');
 }
 function removeRosterPlayer(name) {
     if (!confirm('Remove ' + name + ' from roster? (Past game history is kept)')) return;
     state.data.roster = state.data.roster.filter(p => p !== name);
     state.seats = state.seats.map(s => s === name ? '' : s);
+    if (state.past && state.past.team) delete state.past.team[name];
     persist();
-    renderGameTab();
+    render();
+}
+
+/* ---------- add a past game day ---------- */
+function togglePastForm() {
+    state.showPast = !state.showPast;
+    if (state.showPast && !state.past.date) state.past.date = new Date().toISOString().split('T')[0];
+    renderSeasonTab();
+}
+function setPastDate(v) { state.past.date = v; }
+function setPastTeam(name, team) {
+    state.past.team[name] = (state.past.team[name] === team) ? null : team;
+    renderSeasonTab();
+}
+function setPastPoints(name, v) { state.past.points[name] = v; }
+function setPastScore(which, v) { state.past['score' + which] = v; }
+
+function renumberSeason() {
+    state.data.season.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+    state.data.season.forEach((w, i) => { w.week = i + 1; });
+}
+
+function savePastDay() {
+    if (!state.past.date) { toast('Pick a date first'); return; }
+    const team1 = [], team2 = [];
+    state.data.roster.forEach(p => {
+        const t = state.past.team[p];
+        if (t === 'team1') team1.push(p);
+        else if (t === 'team2') team2.push(p);
+    });
+    if (!team1.length || !team2.length) { toast('Assign at least one player to each team'); return; }
+
+    const s1 = parseFloat(state.past.score1), s2 = parseFloat(state.past.score2);
+    const teamScores = { team1: isNaN(s1) ? 0 : s1, team2: isNaN(s2) ? 0 : s2 };
+
+    const finalTally = {}; let anyPts = false;
+    team1.concat(team2).forEach(p => {
+        const v = parseFloat(state.past.points[p]);
+        if (!isNaN(v)) { finalTally[p] = v; anyPts = true; }
+    });
+
+    const rounds = [];
+    if (teamScores.team1 !== teamScores.team2) {
+        const winner = teamScores.team1 > teamScores.team2 ? 'team1' : 'team2';
+        rounds.push({ winner, winnerPlayers: (winner === 'team1' ? team1 : team2).slice() });
+    }
+
+    const week = {
+        week: state.data.season.length + 1,
+        date: state.past.date, manual: true, completed: true,
+        games: [], players: { team1, team2 }, teamScores, rounds
+    };
+    if (anyPts) week.finalTally = finalTally;
+
+    state.data.season.push(week);
+    renumberSeason();
+    state.past = { date: '', team: {}, score1: '', score2: '', points: {} };
+    state.showPast = false;
+    persist(); render();
+    toast('Past game day saved for ' + week.date);
 }
 
 /* ---------- actions ---------- */
 function switchTab(name) {
     state.activeTab = name;
-    ['game','week','season','data'].forEach(t => {
+    ['game','week','season','roster','data'].forEach(t => {
         document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
     });
     document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -621,10 +717,9 @@ function seatDropdown(i) {
 
 function renderGameTab() {
     ensureSeats();
-    const rosterChips = state.data.roster.length
-        ? '<div class="roster-chips">' + state.data.roster.map(p =>
-            '<span class="chip">' + esc(p) + '<span class="x" onclick="removeRosterPlayer(\'' + esc(p).replace(/'/g, "\\'") + '\')">&times;</span></span>').join('') + '</div>'
-        : '<div class="meta">No players yet. Add your regulars once - they will be remembered.</div>';
+    const rosterHint = state.data.roster.length === 0
+        ? '<div class="meta" style="margin-bottom:12px;">No players yet &mdash; add your regulars in the <strong>Roster</strong> tab, then assign seats here.</div>'
+        : '';
 
     let seatsHtml = '';
     for (let i = 0; i < state.playerCount; i++) {
@@ -634,14 +729,8 @@ function renderGameTab() {
     }
 
     document.getElementById('tab-game').innerHTML =
-        '<div class="card"><h3>Roster (' + state.data.roster.length + ' players)</h3>' +
-        rosterChips +
-        '<div class="add-row" style="margin-top:10px;">' +
-        '<input id="new-player" type="text" placeholder="Add player name" onkeydown="if(event.key===\'Enter\')addRosterPlayer()">' +
-        '<button class="btn" onclick="addRosterPlayer()">Add</button></div>' +
-        '</div>' +
-
         '<div class="card"><h3>Tonight\'s table</h3>' +
+        rosterHint +
         '<label>How many playing?</label>' +
         '<div class="seg">' + [4,6,8,10].map(c =>
             '<button class="' + (state.playerCount === c ? 'on' : '') + '" onclick="setPlayerCount(' + c + ')">' + c + '</button>').join('') +
@@ -683,6 +772,22 @@ function renderGameTab() {
     renderPreview();
 }
 
+function renderRosterTab() {
+    const rosterChips = state.data.roster.length
+        ? '<div class="roster-chips">' + state.data.roster.map(p =>
+            '<span class="chip">' + esc(p) + '<span class="x" onclick="removeRosterPlayer(\'' + esc(p).replace(/'/g, "\\'") + '\')">&times;</span></span>').join('') + '</div>'
+        : '<div class="meta">No players yet. Add your regulars once &mdash; they will be remembered across game nights.</div>';
+
+    document.getElementById('tab-roster').innerHTML =
+        '<div class="card"><h3>Roster (' + state.data.roster.length + ' players)</h3>' +
+        '<div class="hint" style="margin-bottom:12px;">Your regular players. Add them once here &mdash; you rarely need to change this. Removing a player keeps past game history.</div>' +
+        rosterChips +
+        '<div class="add-row" style="margin-top:12px;">' +
+        '<input id="new-player" type="text" placeholder="Add player name" onkeydown="if(event.key===\'Enter\')addRosterPlayer()">' +
+        '<button class="btn" onclick="addRosterPlayer()">Add</button></div>' +
+        '</div>';
+}
+
 function weekPlayers(week) {
     const set = new Set();
     (week.players ? week.players.team1.concat(week.players.team2) : []).forEach(p => set.add(p));
@@ -710,7 +815,7 @@ function gameCardHtml(game, weekIdx, gameIdx, num) {
 }
 
 function renderWeekTab() {
-    const weekIdx = state.data.season.length - 1;
+    const weekIdx = currentWeekIdx();
     const week = weekIdx >= 0 ? state.data.season[weekIdx] : null;
     let html = '';
 
@@ -752,12 +857,52 @@ function renderWeekTab() {
     document.getElementById('tab-week').innerHTML = html;
 }
 
+function pastFormHtml() {
+    if (!state.showPast) {
+        return '<div class="card"><button class="btn subtle" onclick="togglePastForm()">&#128197; Add a past game day</button>' +
+            '<div class="hint">Log a night you played but didn\'t track live &mdash; pick the date, set the teams and the final score.</div></div>';
+    }
+    if (state.data.roster.length < 2) {
+        return '<div class="card"><h3>Add a past game day</h3>' +
+            '<div class="meta">Add at least two players in the <strong>Roster</strong> tab first.</div>' +
+            '<button class="btn subtle" style="margin-top:10px;" onclick="togglePastForm()">Cancel</button></div>';
+    }
+    const rows = state.data.roster.map(p => {
+        const t = state.past.team[p];
+        const arg = "'" + esc(p).replace(/'/g, "\\'") + "'";
+        return '<div class="past-row">' +
+            '<span class="past-name">' + esc(p) + '</span>' +
+            '<div class="seg2 past-seg">' +
+            '<button class="' + (t === 'team1' ? 'on-t1' : '') + '" onclick="setPastTeam(' + arg + ',\'team1\')">T1</button>' +
+            '<button class="' + (t === 'team2' ? 'on-t2' : '') + '" onclick="setPastTeam(' + arg + ',\'team2\')">T2</button>' +
+            '</div>' +
+            (t
+                ? '<input class="past-pts" type="number" step="any" placeholder="pts" value="' + (state.past.points[p] !== undefined ? esc(state.past.points[p]) : '') + '" oninput="setPastPoints(' + arg + ',this.value)">'
+                : '<span class="past-pts-empty"></span>') +
+            '</div>';
+    }).join('');
+
+    return '<div class="card"><h3>Add a past game day</h3>' +
+        '<label>Game date</label>' +
+        '<input type="date" value="' + esc(state.past.date) + '" max="' + new Date().toISOString().split('T')[0] + '" onchange="setPastDate(this.value)">' +
+        '<label style="margin-top:14px;">Who played &amp; on which team?</label>' +
+        '<div class="hint" style="margin-bottom:10px;">Tap T1 or T2 for each player. Points per player are optional and feed the leaderboard.</div>' +
+        rows +
+        '<div class="row" style="margin-top:12px;">' +
+        '<div><label>Team 1 final score</label><input type="number" step="any" value="' + esc(state.past.score1) + '" oninput="setPastScore(1, this.value)"></div>' +
+        '<div><label>Team 2 final score</label><input type="number" step="any" value="' + esc(state.past.score2) + '" oninput="setPastScore(2, this.value)"></div>' +
+        '</div>' +
+        '<button class="btn green" style="margin-top:14px;" onclick="savePastDay()">Save past game day</button>' +
+        '<button class="btn subtle" style="margin-top:8px;" onclick="togglePastForm()">Cancel</button>' +
+        '</div>';
+}
+
 function renderSeasonTab() {
     const season = state.data.season;
-    let html = '';
+    let html = pastFormHtml();
 
     if (season.length === 0) {
-        html = '<div class="card"><div class="empty"><div class="big">&#127942;</div>Season stats will appear here once you start playing.</div></div>';
+        html += '<div class="card"><div class="empty"><div class="big">&#127942;</div>Season stats will appear here once you start playing.</div></div>';
     } else {
         // Per-player aggregates
         const stats = {};
@@ -803,15 +948,31 @@ function renderSeasonTab() {
             const rounds = w.rounds || [];
             const t1r = rounds.filter(r => r.winner === 'team1').length;
             const t2r = rounds.filter(r => r.winner === 'team2').length;
+            const players = w.players || { team1: [], team2: [] };
+            const t1names = players.team1 && players.team1.length ? players.team1.map(esc).join(', ') : '&mdash;';
+            const t2names = players.team2 && players.team2.length ? players.team2.map(esc).join(', ') : '&mdash;';
+            const s1 = w.manual ? w.teamScores.team1 : t1r;
+            const s2 = w.manual ? w.teamScores.team2 : t2r;
+            const caption = w.manual ? 'Final score' : 'Rounds won';
+            const footer = w.manual
+                ? 'Entered manually' + (w.finalTally ? ' \u00b7 points recorded &#10003;' : '')
+                : w.games.length + ' games' + (w.finalTally ? ' \u00b7 tally saved &#10003;' : ' \u00b7 tally pending');
+
             html += '<div class="card">' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-                '<strong>Week ' + w.week + '</strong><span class="meta">' + w.date + '</span></div>' +
-                '<div style="display:flex;gap:10px;margin-top:10px;text-align:center;font-weight:800;font-size:18px;">' +
-                '<div style="flex:1;color:var(--blue)">' + t1r + '<div class="meta" style="font-weight:400;">Team 1 rounds</div></div>' +
-                '<div style="flex:1;color:var(--red)">' + t2r + '<div class="meta" style="font-weight:400;">Team 2 rounds</div></div>' +
+                '<strong>Week ' + w.week + (w.manual ? ' <span class="badge manual">manual</span>' : '') + '</strong>' +
+                '<span class="meta">' + w.date + '</span></div>' +
+                '<div class="matchup">' +
+                '<div class="team t1' + (s1 > s2 ? ' win' : '') + '"><div class="tlabel">Team 1</div>' +
+                '<div class="tscore" style="color:var(--blue)">' + s1 + '</div>' +
+                '<div class="tplayers">' + t1names + '</div></div>' +
+                '<div class="vs">vs</div>' +
+                '<div class="team t2' + (s2 > s1 ? ' win' : '') + '"><div class="tlabel">Team 2</div>' +
+                '<div class="tscore" style="color:var(--red)">' + s2 + '</div>' +
+                '<div class="tplayers">' + t2names + '</div></div>' +
                 '</div>' +
-                '<div class="meta" style="text-align:center;margin-top:8px;">' + w.games.length + ' games' +
-                (w.finalTally ? ' \u00b7 tally saved &#10003;' : ' \u00b7 tally pending') + '</div>' +
+                '<div class="score-caption">' + caption + '</div>' +
+                '<div class="meta" style="text-align:center;margin-top:8px;">' + footer + '</div>' +
                 '</div>';
         }
     }
@@ -839,6 +1000,7 @@ function render() {
     if (state.activeTab === 'game') renderGameTab();
     if (state.activeTab === 'week') renderWeekTab();
     if (state.activeTab === 'season') renderSeasonTab();
+    if (state.activeTab === 'roster') renderRosterTab();
     if (state.activeTab === 'data') renderDataTab();
 }
 
