@@ -258,6 +258,22 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
 .lb-badges { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 12px; }
 .lb-badges span { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 700; color: var(--text); }
 
+/* Leaderboard table */
+.lb-sort { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
+.lb-sort button { padding: 5px 12px; border: 1.5px solid var(--border); border-radius: 8px; background: #fafafa; font-weight: 600; font-size: 12px; color: var(--muted); cursor: pointer; }
+.lb-sort button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+.lb-table-wrap { overflow-x: auto; }
+.lb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.lb-table th, .lb-table td { padding: 8px 5px; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.lb-table thead th { font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; color: var(--muted); font-weight: 700; vertical-align: middle; }
+.lb-table th.col-name, .lb-table td.col-name { text-align: left; white-space: normal; }
+.lb-table td.col-name { font-weight: 600; }
+.lb-table td.lb-pts-cell { font-weight: 800; }
+.lb-table .sorted { background: #f2f6fc; }
+.lb-table thead th.sorted { color: var(--primary); }
+.lb-table tbody tr:last-child td { border-bottom: none; }
+.lb-table .lb-rank { display: inline-flex; }
+
 /* King Maker / Joker / lifted-Joker outline icons */
 .ic { width: 22px; height: 22px; vertical-align: -6px; flex-shrink: 0; }
 .ic-sm { width: 16px; height: 16px; vertical-align: -3px; }
@@ -326,6 +342,7 @@ let state = {
     activeTab: 'game',
     newPlayerName: '',
     showSeatList: false,
+    lbSort: 'points',
     showPast: false,
     past: { date: '', team: {}, score1: '', score2: '', points: {}, ko: [] },
     editWeek: null,
@@ -455,6 +472,7 @@ function toast(msg) {
     setTimeout(() => t.classList.remove('show'), 2400);
 }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
+function round2(n) { return Math.round(n * 100) / 100; }
 function ensureSeats() {
     while (state.seats.length < state.playerCount) state.seats.push('');
 }
@@ -760,6 +778,7 @@ function clearSeats() {
     renderGameTab();
 }
 function toggleSeatList() { state.showSeatList = !state.showSeatList; renderGameTab(); }
+function setLbSort(mode) { state.lbSort = mode; renderSeasonTab(); }
 function setBid(v) {
     state.bid = Math.max(28, Math.min(56, parseInt(v) || 28));
     renderBidHint(); renderPreview();
@@ -1205,30 +1224,44 @@ function renderSeasonTab() {
             });
         });
 
+        const ppgw = p => p.weeks ? p.points / p.weeks : 0;
+        const sortBy = state.lbSort === 'ppgw' ? 'ppgw' : 'points';
         const leaderboard = Object.entries(stats)
-            .map(([name, s]) => ({ name, ...s }))
-            .sort((a, b) => b.points - a.points || b.roundWins - a.roundWins);
+            .map(([name, s]) => ({ name, ...s, ppgw: (s.weeks ? s.points / s.weeks : 0) }))
+            .sort((a, b) => sortBy === 'ppgw'
+                ? (b.ppgw - a.ppgw || b.points - a.points)
+                : (b.points - a.points || b.roundWins - a.roundWins));
 
         if (leaderboard.length) {
             const top = leaderboard[0];
             html += '<div class="winner-banner"><div class="wt">Season leader</div><div class="wn">&#127942; ' + esc(top.name) + '</div>' +
-                '<div class="meta">' + (Math.round(top.points * 100) / 100) + ' pts \u00b7 ' + top.roundWins + ' round wins \u00b7 ' + top.weeks + ' weeks played</div></div>';
+                '<div class="meta">' + round2(top.points) + ' pts \u00b7 ' + top.ppgw.toFixed(1) + ' per week \u00b7 ' + top.roundWins + ' round wins \u00b7 ' + top.weeks + ' weeks</div></div>';
 
+            const th = (label, key, cls) => '<th class="' + (cls || '') + (sortBy === key ? ' sorted' : '') + '">' + label + '</th>';
             html += '<div class="card"><h3>Player leaderboard</h3>' +
-                leaderboard.map((p, i) => {
-                    let badges = '';
-                    if (p.kings) badges += '<span title="King Maker">' + ICON_KING + p.kings + '</span>';
-                    if (p.jokers) badges += '<span title="Jokers received">' + ICON_JOKER + p.jokers + '</span>';
-                    if (p.crossed) badges += '<span title="Jokers lifted">' + iconCrossed(false) + p.crossed + '</span>';
-                    return '<div class="lb-row">' +
-                        '<span class="lb-rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '') + '">' + (i + 1) + '</span>' +
-                        '<span class="lb-name">' + esc(p.name) +
-                        '<div class="lb-sub">' + p.roundWins + ' round wins \u00b7 ' + p.weeks + ' weeks</div>' +
-                        (badges ? '<div class="lb-badges">' + badges + '</div>' : '') + '</span>' +
-                        '<span class="lb-pts" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (Math.round(p.points * 100) / 100) + '</span>' +
-                        '</div>';
-                }).join('') +
-                '<div class="hint">Points: end-of-week tally + ' + ICON_KING + ' King Maker (+2) + ' + iconCrossed(true) + ' lifted Joker (+2). ' + ICON_JOKER + ' = Jokers received. Ties broken by round wins.</div></div>';
+                '<div class="lb-sort">Sort by:' +
+                '<button class="' + (sortBy === 'points' ? 'on' : '') + '" onclick="setLbSort(\'points\')">Points</button>' +
+                '<button class="' + (sortBy === 'ppgw' ? 'on' : '') + '" onclick="setLbSort(\'ppgw\')">Per week</button>' +
+                '</div>' +
+                '<div class="lb-table-wrap"><table class="lb-table"><thead><tr>' +
+                '<th>#</th><th class="col-name">Player</th>' +
+                '<th title="King Maker">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + '</th>' +
+                '<th title="Jokers received">' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + '</th>' +
+                '<th title="Jokers lifted">' + iconCrossed(true) + '</th>' +
+                th('PPGW', 'ppgw') + th('Pts', 'points') +
+                '</tr></thead><tbody>' +
+                leaderboard.map((p, i) =>
+                    '<tr>' +
+                    '<td><span class="lb-rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '') + '">' + (i + 1) + '</span></td>' +
+                    '<td class="col-name">' + esc(p.name) + '<div class="lb-sub">' + p.roundWins + ' round wins \u00b7 ' + p.weeks + ' weeks</div></td>' +
+                    '<td>' + (p.kings || 0) + '</td>' +
+                    '<td>' + (p.jokers || 0) + '</td>' +
+                    '<td>' + (p.crossed || 0) + '</td>' +
+                    '<td class="' + (sortBy === 'ppgw' ? 'sorted' : '') + '">' + p.ppgw.toFixed(1) + '</td>' +
+                    '<td class="lb-pts-cell ' + (sortBy === 'points' ? 'sorted' : '') + '" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(p.points) + '</td>' +
+                    '</tr>').join('') +
+                '</tbody></table></div>' +
+                '<div class="hint">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + ' King Maker \u00b7 ' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + ' Jokers \u00b7 ' + iconCrossed(true) + ' lifted Joker \u00b7 PPGW = points \u00f7 weeks played. Points = tally + King Maker (+2) + lifted Joker (+2).</div></div>';
         }
 
         html += '<div class="card"><h3>Season stats</h3>' +
