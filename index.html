@@ -316,6 +316,13 @@ let state = {
 };
 
 /* ---------- persistence ---------- */
+// Each game week carries a stable id used as its storage key (one blob per week).
+function genId() {
+    return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+function ensureWeekIds() {
+    (state.data.season || []).forEach(w => { if (!w.id) w.id = genId(); });
+}
 function localLoad() {
     try {
         const saved = localStorage.getItem('thuruppu-data');
@@ -328,6 +335,7 @@ function localLoad() {
             state.seats = p.seats || [];
         }
     } catch (e) {}
+    ensureWeekIds();
     ensureSeats();
 }
 function localSave() {
@@ -386,6 +394,7 @@ async function serverLoad() {
         if (serverData.season && serverData.season.length > 0) {
             state.data = serverData;
             if (!state.data.roster) state.data.roster = [];
+            ensureWeekIds();
             localSave();
         } else if (state.data.season.length > 0 || (state.data.roster && state.data.roster.length)) {
             serverSave();
@@ -621,6 +630,7 @@ function savePastDay() {
     const koRounds = koRoundsFromBuf('past', team1, team2);
 
     const week = {
+        id: genId(),
         week: state.data.season.length + 1,
         date: state.past.date, manual: true, completed: true,
         games: [], players: { team1, team2 }, teamScores, rounds, finalTally, koRounds
@@ -746,7 +756,7 @@ function addGame() {
     const teams = getTeams();
 
     if (!week || week.completed) {
-        week = { week: state.data.season.length + 1, date: new Date().toISOString().split('T')[0],
+        week = { id: genId(), week: state.data.season.length + 1, date: new Date().toISOString().split('T')[0],
                  games: [], teamScores: { team1: 6, team2: 6 }, players: teams, rounds: [] };
         state.data.season.push(week);
     }
@@ -847,6 +857,7 @@ function importData(ev) {
         try {
             state.data = JSON.parse(e.target.result);
             if (!state.data.roster) state.data.roster = [];
+            ensureWeekIds();
             persist(); render();
             toast('Data imported');
         } catch (err) { toast('Import failed: invalid JSON'); }

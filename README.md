@@ -113,6 +113,21 @@ Open http://localhost:3000 — locally, data is saved to `data/thuruppu-data.jso
 | Local dev | `data/` folder on disk | Yes |
 | Browser | localStorage fallback | Yes, per device; syncs up when the server is reachable |
 
+### Blob layout (production)
+
+For easier management, the data is split into separate blobs rather than one big
+file:
+
+- `roster.json` — the player names
+- `season.json` — an index that references each week (`{ id, week, date, key, hash }`)
+- `weeks/week-<id>.json` — one blob per game week
+
+The `/api/data` function assembles these into the single `{ season, roster }`
+object the app uses, and on save it splits them back out — rewriting only the
+weeks whose contents changed (tracked by a hash in the index) and cleaning up
+weeks that were removed. Data from the older single-blob format
+(`thuruppu-data.json`) is migrated automatically on first save.
+
 Export/Import JSON from the Data tab any time for an extra backup.
 
 ## Scoring rules
