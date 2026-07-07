@@ -40,6 +40,23 @@ Each week card on the **Season** tab has an **Edit points** button. For manually
 entered weeks you can change the team scores (which re-apply to everyone, minus
 any overrides); for live-tracked weeks you can adjust each player's tally.
 
+### King Maker & Joker badges (12-0 rounds)
+
+In both the "Add a past game day" and "Edit points" forms you can record **12-0
+rounds** (only when a round was actually won 12-0). For each one, pick the
+winning team:
+
+- 👑 **King Maker** — every player on the winning team gets a King Maker badge
+  worth **+2** points.
+- 🃏 **Joker** — every player on the losing team gets a Joker (tracked as a
+  count, no points).
+- ❌🃏 **Lifted Joker** — tap any losing player who lifted their Joker away; they
+  get **+2**.
+
+A week can have several 12-0 rounds (e.g. one 12-0 and one 0-12). The leaderboard
+shows each player's total 👑 / 🃏 / ❌🃏 counts and folds the badge points into
+their score.
+
 ## Deploy to Vercel (one time, ~5 minutes)
 
 1. Push this repo to GitHub (already set up — just `git push`)

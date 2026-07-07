@@ -248,6 +248,15 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
 .past-pts { width: 68px; flex-shrink: 0; padding: 8px; text-align: center; }
 .past-pts-empty { width: 68px; flex-shrink: 0; }
 .badge.manual { background: #eae6fb; color: #6b46c1; }
+
+/* 12-0 rounds: King Maker / Joker badges */
+.ko-round { border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 10px; background: #fafafa; }
+.ko-head { display: flex; justify-content: space-between; align-items: center; }
+.ko-jokers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.chip-toggle { padding: 6px 12px; border-radius: 16px; border: 1.5px solid var(--border); background: #fff; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.chip-toggle.on { background: #e6f7ee; border-color: var(--green); color: var(--green); }
+.lb-badges { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.lb-badges span { margin-right: 8px; white-space: nowrap; }
 </style>
 </head>
 <body>
@@ -301,7 +310,7 @@ let state = {
     newPlayerName: '',
     showSeatList: false,
     showPast: false,
-    past: { date: '', team: {}, score1: '', score2: '', points: {} },
+    past: { date: '', team: {}, score1: '', score2: '', points: {}, ko: [] },
     editWeek: null,
     editBuf: null
 };
@@ -501,6 +510,7 @@ function renameRosterPlayer(oldName) {
         }
         (w.games || []).forEach(g => { g.team1 = (g.team1 || []).map(map); g.team2 = (g.team2 || []).map(map); });
         (w.rounds || []).forEach(r => { r.winnerPlayers = (r.winnerPlayers || []).map(map); });
+        (w.koRounds || []).forEach(r => { r.crossed = (r.crossed || []).map(map); });
         if (w.finalTally && w.finalTally[oldName] !== undefined) {
             w.finalTally[newName] = w.finalTally[oldName]; delete w.finalTally[oldName];
         }
@@ -524,6 +534,59 @@ function setPastTeam(name, team) {
 }
 function setPastPoints(name, v) { state.past.points[name] = v; }
 function setPastScore(which, v) { state.past['score' + which] = v; }
+
+/* ---------- 12-0 rounds: King Maker / Joker badges ----------
+   Buffer shape per round: { winner: 'team1'|'team2', crossed: { name: true } }.
+   ctx is 'past' (new day form) or 'edit' (edit-week form). */
+function koBuf(ctx) { return ctx === 'past' ? state.past.ko : state.editBuf.ko; }
+function addKoRound(ctx) { koBuf(ctx).push({ winner: 'team1', crossed: {} }); renderSeasonTab(); }
+function removeKoRound(ctx, i) { koBuf(ctx).splice(i, 1); renderSeasonTab(); }
+function setKoWinner(ctx, i, team) { const r = koBuf(ctx)[i]; r.winner = team; r.crossed = {}; renderSeasonTab(); }
+function toggleKoCrossed(ctx, i, name) { const c = koBuf(ctx)[i].crossed; c[name] = !c[name]; renderSeasonTab(); }
+
+// Convert the editor buffer into stored koRounds, keeping only crossed players
+// who are actually on the losing team.
+function koRoundsFromBuf(ctx, team1, team2) {
+    return koBuf(ctx).map(r => {
+        const losers = r.winner === 'team1' ? team2 : team1;
+        const crossed = losers.filter(p => r.crossed[p]);
+        return { winner: r.winner, crossed };
+    });
+}
+
+function koEditorHtml(ctx, team1, team2) {
+    const ko = koBuf(ctx);
+    const rows = ko.map((r, i) => {
+        const winTeam = r.winner === 'team1' ? team1 : team2;
+        const loseTeam = r.winner === 'team1' ? team2 : team1;
+        const jokers = loseTeam.length
+            ? loseTeam.map(p => {
+                const arg = "'" + esc(p).replace(/'/g, "\\'") + "'";
+                const on = !!r.crossed[p];
+                return '<button class="chip-toggle' + (on ? ' on' : '') + '" onclick="toggleKoCrossed(\'' + ctx + '\',' + i + ',' + arg + ')">' + (on ? '❌ ' : '') + esc(p) + '</button>';
+            }).join('')
+            : '<span class="meta">no players on the losing team</span>';
+        return '<div class="ko-round">' +
+            '<div class="ko-head"><strong>12-0 round ' + (i + 1) + '</strong>' +
+            '<button class="btn danger small" onclick="removeKoRound(\'' + ctx + '\',' + i + ')">Remove</button></div>' +
+            '<div class="seg2" style="margin:8px 0;">' +
+            '<button class="' + (r.winner === 'team1' ? 'on-t1' : '') + '" onclick="setKoWinner(\'' + ctx + '\',' + i + ',\'team1\')">Team 1 won 12-0</button>' +
+            '<button class="' + (r.winner === 'team2' ? 'on-t2' : '') + '" onclick="setKoWinner(\'' + ctx + '\',' + i + ',\'team2\')">Team 2 won 12-0</button>' +
+            '</div>' +
+            '<div class="hint">👑 King Maker (+2 each): ' + (winTeam.length ? winTeam.map(esc).join(', ') : '—') + '</div>' +
+            '<div class="hint" style="margin-top:6px;">🃏 Jokers &mdash; tap anyone who lifted theirs (+2):</div>' +
+            '<div class="ko-jokers">' + jokers + '</div>' +
+            '</div>';
+    }).join('');
+    const canUse = team1.length && team2.length;
+    return '<div style="margin-top:14px;">' +
+        '<label>12-0 rounds (King Maker / Joker)</label>' +
+        '<div class="hint" style="margin-bottom:8px;">Add a round here <strong>only if it ended 12-0</strong>. The winning team each get a King Maker badge (+2); the losers each get a Joker &mdash; tap any loser who lifted theirs (+2). Add one per 12-0 round (a week can have several).</div>' +
+        (canUse
+            ? rows + '<button class="btn subtle" onclick="addKoRound(\'' + ctx + '\')">+ Add a 12-0 round</button>'
+            : '<div class="meta">Assign both teams first to add 12-0 rounds.</div>') +
+        '</div>';
+}
 
 function renumberSeason() {
     state.data.season.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
@@ -555,15 +618,17 @@ function savePastDay() {
         rounds.push({ winner, winnerPlayers: (winner === 'team1' ? team1 : team2).slice() });
     }
 
+    const koRounds = koRoundsFromBuf('past', team1, team2);
+
     const week = {
         week: state.data.season.length + 1,
         date: state.past.date, manual: true, completed: true,
-        games: [], players: { team1, team2 }, teamScores, rounds, finalTally
+        games: [], players: { team1, team2 }, teamScores, rounds, finalTally, koRounds
     };
 
     state.data.season.push(week);
     renumberSeason();
-    state.past = { date: '', team: {}, score1: '', score2: '', points: {} };
+    state.past = { date: '', team: {}, score1: '', score2: '', points: {}, ko: [] };
     state.showPast = false;
     persist(); render();
     toast('Past game day saved for ' + week.date);
@@ -584,11 +649,17 @@ function editWeekOpen(idx) {
         }
         points[p] = show;
     });
+    // Load existing 12-0 rounds into the editor buffer (crossed array -> map).
+    const ko = (w.koRounds || []).map(r => {
+        const crossed = {};
+        (r.crossed || []).forEach(p => { crossed[p] = true; });
+        return { winner: r.winner, crossed };
+    });
     state.editWeek = idx;
     state.editBuf = {
         score1: w.manual ? String(w.teamScores.team1) : '',
         score2: w.manual ? String(w.teamScores.team2) : '',
-        points
+        points, ko
     };
     renderSeasonTab();
 }
@@ -617,6 +688,8 @@ function editWeekSave() {
         weekPlayers(w).forEach(p => { const v = parseFloat(state.editBuf.points[p]); if (!isNaN(v)) ft[p] = v; });
         w.finalTally = ft;
     }
+
+    w.koRounds = koRoundsFromBuf('edit', w.players.team1 || [], w.players.team2 || []);
 
     state.editWeek = null; state.editBuf = null;
     persist(); render();
@@ -1052,6 +1125,9 @@ function pastFormHtml() {
             '</div>';
     }).join('');
 
+    const pT1 = state.data.roster.filter(p => state.past.team[p] === 'team1');
+    const pT2 = state.data.roster.filter(p => state.past.team[p] === 'team2');
+
     return '<div class="card"><h3>Add a past game day</h3>' +
         '<label>Game date</label>' +
         '<input type="date" value="' + esc(state.past.date) + '" max="' + new Date().toISOString().split('T')[0] + '" onchange="setPastDate(this.value)">' +
@@ -1064,6 +1140,7 @@ function pastFormHtml() {
         '<label style="margin-top:14px;">Who played &amp; on which team?</label>' +
         '<div class="hint" style="margin-bottom:10px;">Tap T1 or T2 for each player. The points box is optional &mdash; leave it blank to use the team score, or type a number to override just that player.</div>' +
         rows +
+        koEditorHtml('past', pT1, pT2) +
         '<button class="btn green" style="margin-top:14px;" onclick="savePastDay()">Save past game day</button>' +
         '<button class="btn subtle" style="margin-top:8px;" onclick="togglePastForm()">Cancel</button>' +
         '</div>';
@@ -1079,7 +1156,7 @@ function renderSeasonTab() {
         // Per-player aggregates
         const stats = {};
         function stat(p) {
-            if (!stats[p]) stats[p] = { points: 0, roundWins: 0, weeks: 0, tallied: false };
+            if (!stats[p]) stats[p] = { points: 0, roundWins: 0, weeks: 0, tallied: false, kings: 0, jokers: 0, crossed: 0 };
             return stats[p];
         }
         let totalGames = 0;
@@ -1088,6 +1165,16 @@ function renderSeasonTab() {
             weekPlayers(w).forEach(p => stat(p).weeks++);
             (w.rounds || []).forEach(r => r.winnerPlayers.forEach(p => stat(p).roundWins++));
             if (w.finalTally) Object.entries(w.finalTally).forEach(([p, v]) => { stat(p).points += v; stat(p).tallied = true; });
+            // King Maker / Joker badges from 12-0 rounds.
+            (w.koRounds || []).forEach(r => {
+                const t1 = (w.players && w.players.team1) || [];
+                const t2 = (w.players && w.players.team2) || [];
+                const kings = r.winner === 'team1' ? t1 : t2;
+                const losers = r.winner === 'team1' ? t2 : t1;
+                kings.forEach(p => { const s = stat(p); s.kings++; s.points += 2; s.tallied = true; });
+                losers.forEach(p => { stat(p).jokers++; });
+                (r.crossed || []).forEach(p => { const s = stat(p); s.crossed++; s.points += 2; s.tallied = true; });
+            });
         });
 
         const leaderboard = Object.entries(stats)
@@ -1100,13 +1187,20 @@ function renderSeasonTab() {
                 '<div class="meta">' + (Math.round(top.points * 100) / 100) + ' pts \u00b7 ' + top.roundWins + ' round wins \u00b7 ' + top.weeks + ' weeks played</div></div>';
 
             html += '<div class="card"><h3>Player leaderboard</h3>' +
-                leaderboard.map((p, i) =>
-                    '<div class="lb-row">' +
-                    '<span class="lb-rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '') + '">' + (i + 1) + '</span>' +
-                    '<span class="lb-name">' + esc(p.name) + '<div class="lb-sub">' + p.roundWins + ' round wins \u00b7 ' + p.weeks + ' weeks</div></span>' +
-                    '<span class="lb-pts" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (Math.round(p.points * 100) / 100) + '</span>' +
-                    '</div>').join('') +
-                '<div class="hint">Points come from the end-of-week tally. Ties broken by round wins.</div></div>';
+                leaderboard.map((p, i) => {
+                    let badges = '';
+                    if (p.kings) badges += '<span>\ud83d\udc51 ' + p.kings + '</span>';
+                    if (p.jokers) badges += '<span>\ud83c\udccf ' + p.jokers + '</span>';
+                    if (p.crossed) badges += '<span>\u274c\ud83c\udccf ' + p.crossed + '</span>';
+                    return '<div class="lb-row">' +
+                        '<span class="lb-rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '') + '">' + (i + 1) + '</span>' +
+                        '<span class="lb-name">' + esc(p.name) +
+                        '<div class="lb-sub">' + p.roundWins + ' round wins \u00b7 ' + p.weeks + ' weeks</div>' +
+                        (badges ? '<div class="lb-badges">' + badges + '</div>' : '') + '</span>' +
+                        '<span class="lb-pts" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (Math.round(p.points * 100) / 100) + '</span>' +
+                        '</div>';
+                }).join('') +
+                '<div class="hint">Points: end-of-week tally + \ud83d\udc51 King Maker (+2) + \u274c\ud83c\udccf lifted Joker (+2). \ud83c\udccf = Jokers received. Ties broken by round wins.</div></div>';
         }
 
         html += '<div class="card"><h3>Season stats</h3>' +
@@ -1130,6 +1224,17 @@ function renderSeasonTab() {
                 ? 'Entered manually' + (w.finalTally ? ' \u00b7 points recorded &#10003;' : '')
                 : w.games.length + ' games' + (w.finalTally ? ' \u00b7 tally saved &#10003;' : ' \u00b7 tally pending');
 
+            const ko = w.koRounds || [];
+            let koLine = '';
+            if (ko.length) {
+                koLine = ko.map((r, ri) => {
+                    const kingTeam = r.winner === 'team1' ? 'Team 1' : 'Team 2';
+                    const lifted = (r.crossed || []).length ? ' · ❌🃏 ' + r.crossed.map(esc).join(', ') : '';
+                    return '👑 ' + kingTeam + lifted;
+                }).join(' &nbsp;|&nbsp; ');
+                koLine = '<div class="meta" style="text-align:center;margin-top:4px;">' + ko.length + '× 12-0 &nbsp; ' + koLine + '</div>';
+            }
+
             const editing = state.editWeek === i;
             html += '<div class="card">' +
                 '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">' +
@@ -1148,6 +1253,7 @@ function renderSeasonTab() {
                 '</div>' +
                 '<div class="score-caption">' + caption + '</div>' +
                 '<div class="meta" style="text-align:center;margin-top:8px;">' + footer + '</div>' +
+                koLine +
                 (editing ? weekEditHtml(w) : '') +
                 '</div>';
         }
@@ -1173,6 +1279,7 @@ function weekEditHtml(w) {
     return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">' +
         '<label>Edit points for Week ' + w.week + '</label>' +
         teamScoreRow + rows +
+        koEditorHtml('edit', w.players.team1 || [], w.players.team2 || []) +
         '<div class="row" style="margin-top:10px;">' +
         '<button class="btn subtle" onclick="editWeekCancel()">Cancel</button>' +
         '<button class="btn blue" onclick="editWeekSave()">Save changes</button>' +
