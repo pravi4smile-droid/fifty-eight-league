@@ -259,9 +259,12 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
 .lb-badges span { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 700; color: var(--text); }
 
 /* Leaderboard table */
-.lb-sort { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 12px; }
-.lb-sort button { padding: 5px 12px; border: 1.5px solid var(--border); border-radius: 8px; background: #fafafa; font-weight: 600; font-size: 12px; color: var(--muted); cursor: pointer; }
-.lb-sort button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+.lb-sort, .lb-view { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); margin-bottom: 12px; flex-wrap: wrap; }
+.lb-sort button, .lb-view button { padding: 5px 12px; border: 1.5px solid var(--border); border-radius: 8px; background: #fafafa; font-weight: 600; font-size: 12px; color: var(--muted); cursor: pointer; }
+.lb-sort button.on, .lb-view button.on { background: var(--primary); color: #fff; border-color: var(--primary); }
+.wk-table th, .wk-table td { min-width: 46px; }
+.wk-bonus { color: var(--accent); font-weight: 700; font-size: 11px; margin-left: 1px; }
+.wk-empty { color: var(--muted); }
 .lb-table-wrap { overflow-x: auto; }
 .lb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .lb-table th, .lb-table td { padding: 8px 5px; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -352,6 +355,7 @@ let state = {
     newPlayerName: '',
     showSeatList: false,
     lbSort: 'points',
+    lbView: 'ranking',
     showPast: false,
     past: { date: '', team: {}, score1: '', score2: '', points: {}, ko: [] },
     editWeek: null,
@@ -788,6 +792,7 @@ function clearSeats() {
 }
 function toggleSeatList() { state.showSeatList = !state.showSeatList; renderGameTab(); }
 function setLbSort(mode) { state.lbSort = mode; renderSeasonTab(); }
+function setLbView(mode) { state.lbView = mode; renderSeasonTab(); }
 function setBid(v) {
     state.bid = Math.max(28, Math.min(56, parseInt(v) || 28));
     renderBidHint(); renderPreview();
@@ -1246,8 +1251,11 @@ function renderSeasonTab() {
             html += '<div class="winner-banner"><div class="wt">Season leader</div><div class="wn">&#127942; ' + esc(top.name) + '</div>' +
                 '<div class="meta">' + round2(top.points) + ' pts \u00b7 ' + top.ppgw.toFixed(1) + ' per week \u00b7 ' + top.roundWins + ' round wins \u00b7 ' + top.weeks + ' weeks</div></div>';
 
-            const th = (label, key, cls) => '<th class="' + (cls || '') + (sortBy === key ? ' sorted' : '') + '">' + label + '</th>';
-            html += '<div class="card"><h3>Player leaderboard</h3>' +
+            const view = state.lbView === 'weekly' ? 'weekly' : 'ranking';
+            const th = (label, key) => '<th class="' + (sortBy === key ? 'sorted' : '') + '">' + label + '</th>';
+
+            // Ranking table
+            const rankingHtml =
                 '<div class="lb-sort">Sort by:' +
                 '<button class="' + (sortBy === 'points' ? 'on' : '') + '" onclick="setLbSort(\'points\')">Points</button>' +
                 '<button class="' + (sortBy === 'ppgw' ? 'on' : '') + '" onclick="setLbSort(\'ppgw\')">Per week</button>' +
@@ -1270,7 +1278,45 @@ function renderSeasonTab() {
                     '<td class="lb-pts-cell ' + (sortBy === 'points' ? 'sorted' : '') + '" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(p.points) + '</td>' +
                     '</tr>').join('') +
                 '</tbody></table></div>' +
-                '<div class="hint">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + ' King Maker \u00b7 ' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + ' Jokers \u00b7 ' + iconCrossed(true) + ' lifted Joker \u00b7 PPGW = points \u00f7 weeks played. Points = tally + King Maker (+2) + lifted Joker (+2).</div></div>';
+                '<div class="hint">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + ' King Maker \u00b7 ' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + ' Jokers \u00b7 ' + iconCrossed(true) + ' lifted Joker \u00b7 PPGW = points \u00f7 weeks played. Points = tally + King Maker (+2) + lifted Joker (+2).</div>';
+
+            // Weekly breakdown: base "points won" + bonus (King Maker / lifted Joker).
+            const cellFor = (w, p) => {
+                if (!weekPlayers(w).includes(p)) return null;
+                const base = (w.finalTally && w.finalTally[p] !== undefined) ? w.finalTally[p] : 0;
+                let bonus = 0;
+                (w.koRounds || []).forEach(r => {
+                    const kings = r.winner === 'team1' ? ((w.players && w.players.team1) || []) : ((w.players && w.players.team2) || []);
+                    if (kings.includes(p)) bonus += 2;
+                    if ((r.crossed || []).includes(p)) bonus += 2;
+                });
+                return { base, bonus };
+            };
+            const weeklyHtml =
+                '<div class="lb-table-wrap"><table class="lb-table wk-table"><thead><tr>' +
+                '<th class="col-name">Player</th>' +
+                season.map(w => '<th title="' + esc(w.date) + (w.manual ? ' (manual)' : '') + '">W' + w.week + '</th>').join('') +
+                '<th>Total</th></tr></thead><tbody>' +
+                leaderboard.map(pl => {
+                    let total = 0;
+                    const cells = season.map(w => {
+                        const c = cellFor(w, pl.name);
+                        if (!c) return '<td class="wk-empty">\u2013</td>';
+                        total += c.base + c.bonus;
+                        return '<td>' + round2(c.base) + (c.bonus ? '<span class="wk-bonus">+' + c.bonus + '</span>' : '') + '</td>';
+                    }).join('');
+                    return '<tr><td class="col-name">' + esc(pl.name) + '</td>' + cells + '<td class="lb-pts-cell">' + round2(total) + '</td></tr>';
+                }).join('') +
+                '</tbody></table></div>' +
+                '<div class="hint">Each cell is that week\'s points as <strong>won<span class="wk-bonus">+bonus</span></strong> (bonus = King Maker / lifted Joker, +2 each). \u2013 = didn\'t play.</div>';
+
+            html += '<div class="card"><h3>Player leaderboard</h3>' +
+                '<div class="lb-view">' +
+                '<button class="' + (view === 'ranking' ? 'on' : '') + '" onclick="setLbView(\'ranking\')">Ranking</button>' +
+                '<button class="' + (view === 'weekly' ? 'on' : '') + '" onclick="setLbView(\'weekly\')">Weekly breakdown</button>' +
+                '</div>' +
+                (view === 'ranking' ? rankingHtml : weeklyHtml) +
+                '</div>';
         }
 
         html += '<div class="card"><h3>Season stats</h3>' +
