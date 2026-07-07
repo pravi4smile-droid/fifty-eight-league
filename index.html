@@ -1261,13 +1261,20 @@ function renderSeasonTab() {
         let totalGames = 0;
         season.forEach(w => {
             totalGames += w.games.length;
+            const t1 = (w.players && w.players.team1) || [];
+            const t2 = (w.players && w.players.team2) || [];
+            const ko = w.koRounds || [];
             weekPlayers(w).forEach(p => stat(p).weeks++);
-            (w.rounds || []).forEach(r => r.winnerPlayers.forEach(p => stat(p).roundWins++));
+            // Round wins: for a manually-entered week the recorded 12-0 rounds are
+            // its rounds (each is a win for its team); otherwise use the round log.
+            if (w.manual && ko.length) {
+                ko.forEach(r => (r.winner === 'team1' ? t1 : t2).forEach(p => stat(p).roundWins++));
+            } else {
+                (w.rounds || []).forEach(r => r.winnerPlayers.forEach(p => stat(p).roundWins++));
+            }
             if (w.finalTally) Object.entries(w.finalTally).forEach(([p, v]) => { stat(p).points += v; stat(p).tallied = true; });
             // King Maker / Joker badges from 12-0 rounds.
-            (w.koRounds || []).forEach(r => {
-                const t1 = (w.players && w.players.team1) || [];
-                const t2 = (w.players && w.players.team2) || [];
+            ko.forEach(r => {
                 const kings = r.winner === 'team1' ? t1 : t2;
                 const losers = r.winner === 'team1' ? t2 : t1;
                 kings.forEach(p => { const s = stat(p); s.kings++; s.points += 2; s.tallied = true; });
