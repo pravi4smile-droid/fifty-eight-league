@@ -253,10 +253,20 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
 .ko-round { border: 1px solid var(--border); border-radius: 10px; padding: 10px; margin-bottom: 10px; background: #fafafa; }
 .ko-head { display: flex; justify-content: space-between; align-items: center; }
 .ko-jokers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
-.chip-toggle { padding: 6px 12px; border-radius: 16px; border: 1.5px solid var(--border); background: #fff; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
+.chip-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 6px 12px; border-radius: 16px; border: 1.5px solid var(--border); background: #fff; font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer; }
 .chip-toggle.on { background: #e6f7ee; border-color: var(--green); color: var(--green); }
-.lb-badges { font-size: 11px; color: var(--muted); margin-top: 2px; }
-.lb-badges span { margin-right: 8px; white-space: nowrap; }
+.lb-badges { margin-top: 4px; display: flex; flex-wrap: wrap; gap: 12px; }
+.lb-badges span { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 700; color: var(--text); }
+
+/* King Maker / Joker / lifted-Joker outline icons */
+.ic { width: 22px; height: 22px; vertical-align: -6px; flex-shrink: 0; }
+.ic-sm { width: 16px; height: 16px; vertical-align: -3px; }
+.ic-king { color: #d4a017; }
+.ic-joker { color: #6b46c1; }
+.ic-cross { color: var(--red); }
+.ic-stack { position: relative; display: inline-block; width: 22px; height: 22px; vertical-align: -6px; flex-shrink: 0; }
+.ic-stack.ic-sm { width: 16px; height: 16px; vertical-align: -3px; }
+.ic-stack .ic { position: absolute; inset: 0; width: 100%; height: 100%; vertical-align: 0; }
 </style>
 </head>
 <body>
@@ -297,6 +307,13 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
 <script>
 const API = '/api/data';
 let saveTimer = null;
+
+/* Outline badge icons (stroke = currentColor; colour set via .ic-* class). */
+const ICON_KING = '<svg class="ic ic-king" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M3 7l4 4 5-6 5 6 4-4-2 12H5L3 7z"/><path d="M5 20h14"/></svg>';
+const ICON_JOKER = '<svg class="ic ic-joker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M12 7C8 7 5 10 5 14h14c0-4-3-7-7-7z"/><path d="M5 14c-2-1-3-4-2-7l3.2 2.3"/><path d="M19 14c2-1 3-4 2-7l-3.2 2.3"/><path d="M9.8 7.3C9.8 4.6 10.8 3 12 3s2.2 1.6 2.2 4.3"/><path d="M5 14h14v2.2H5z"/></svg>';
+const ICON_CROSS = '<svg class="ic ic-cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+// Lifted Joker = the cross sits on top of the Joker icon.
+function iconCrossed(sm) { return '<span class="ic-stack' + (sm ? ' ic-sm' : '') + '" title="Joker lifted">' + ICON_JOKER + ICON_CROSS + '</span>'; }
 
 let state = {
     data: { season: [], roster: [] },
@@ -572,7 +589,7 @@ function koEditorHtml(ctx, team1, team2) {
             ? loseTeam.map(p => {
                 const arg = "'" + esc(p).replace(/'/g, "\\'") + "'";
                 const on = !!r.crossed[p];
-                return '<button class="chip-toggle' + (on ? ' on' : '') + '" onclick="toggleKoCrossed(\'' + ctx + '\',' + i + ',' + arg + ')">' + (on ? '❌ ' : '') + esc(p) + '</button>';
+                return '<button class="chip-toggle' + (on ? ' on' : '') + '" onclick="toggleKoCrossed(\'' + ctx + '\',' + i + ',' + arg + ')">' + (on ? iconCrossed(true) : ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker')) + esc(p) + '</button>';
             }).join('')
             : '<span class="meta">no players on the losing team</span>';
         return '<div class="ko-round">' +
@@ -582,8 +599,8 @@ function koEditorHtml(ctx, team1, team2) {
             '<button class="' + (r.winner === 'team1' ? 'on-t1' : '') + '" onclick="setKoWinner(\'' + ctx + '\',' + i + ',\'team1\')">Team 1 won 12-0</button>' +
             '<button class="' + (r.winner === 'team2' ? 'on-t2' : '') + '" onclick="setKoWinner(\'' + ctx + '\',' + i + ',\'team2\')">Team 2 won 12-0</button>' +
             '</div>' +
-            '<div class="hint">👑 King Maker (+2 each): ' + (winTeam.length ? winTeam.map(esc).join(', ') : '—') + '</div>' +
-            '<div class="hint" style="margin-top:6px;">🃏 Jokers &mdash; tap anyone who lifted theirs (+2):</div>' +
+            '<div class="hint">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + ' King Maker (+2 each): ' + (winTeam.length ? winTeam.map(esc).join(', ') : '—') + '</div>' +
+            '<div class="hint" style="margin-top:6px;">' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + ' Jokers &mdash; tap anyone who lifted theirs (+2):</div>' +
             '<div class="ko-jokers">' + jokers + '</div>' +
             '</div>';
     }).join('');
@@ -1200,9 +1217,9 @@ function renderSeasonTab() {
             html += '<div class="card"><h3>Player leaderboard</h3>' +
                 leaderboard.map((p, i) => {
                     let badges = '';
-                    if (p.kings) badges += '<span>\ud83d\udc51 ' + p.kings + '</span>';
-                    if (p.jokers) badges += '<span>\ud83c\udccf ' + p.jokers + '</span>';
-                    if (p.crossed) badges += '<span>\u274c\ud83c\udccf ' + p.crossed + '</span>';
+                    if (p.kings) badges += '<span title="King Maker">' + ICON_KING + p.kings + '</span>';
+                    if (p.jokers) badges += '<span title="Jokers received">' + ICON_JOKER + p.jokers + '</span>';
+                    if (p.crossed) badges += '<span title="Jokers lifted">' + iconCrossed(false) + p.crossed + '</span>';
                     return '<div class="lb-row">' +
                         '<span class="lb-rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '') + '">' + (i + 1) + '</span>' +
                         '<span class="lb-name">' + esc(p.name) +
@@ -1211,7 +1228,7 @@ function renderSeasonTab() {
                         '<span class="lb-pts" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + (Math.round(p.points * 100) / 100) + '</span>' +
                         '</div>';
                 }).join('') +
-                '<div class="hint">Points: end-of-week tally + \ud83d\udc51 King Maker (+2) + \u274c\ud83c\udccf lifted Joker (+2). \ud83c\udccf = Jokers received. Ties broken by round wins.</div></div>';
+                '<div class="hint">Points: end-of-week tally + ' + ICON_KING + ' King Maker (+2) + ' + iconCrossed(true) + ' lifted Joker (+2). ' + ICON_JOKER + ' = Jokers received. Ties broken by round wins.</div></div>';
         }
 
         html += '<div class="card"><h3>Season stats</h3>' +
@@ -1240,8 +1257,8 @@ function renderSeasonTab() {
             if (ko.length) {
                 koLine = ko.map((r, ri) => {
                     const kingTeam = r.winner === 'team1' ? 'Team 1' : 'Team 2';
-                    const lifted = (r.crossed || []).length ? ' · ❌🃏 ' + r.crossed.map(esc).join(', ') : '';
-                    return '👑 ' + kingTeam + lifted;
+                    const lifted = (r.crossed || []).length ? ' · ' + iconCrossed(true) + ' ' + r.crossed.map(esc).join(', ') : '';
+                    return ICON_KING + ' ' + kingTeam + lifted;
                 }).join(' &nbsp;|&nbsp; ');
                 koLine = '<div class="meta" style="text-align:center;margin-top:4px;">' + ko.length + '× 12-0 &nbsp; ' + koLine + '</div>';
             }
