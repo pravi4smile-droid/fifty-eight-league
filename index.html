@@ -117,6 +117,20 @@ input:focus, select:focus { outline: none; border-color: var(--primary); backgro
 .add-row input { flex: 1; }
 .add-row button { width: auto; padding: 0 18px; }
 
+/* Roster rows with guest control */
+.roster-list { display: flex; flex-direction: column; }
+.roster-item { display: flex; align-items: center; gap: 8px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.roster-item:last-child { border-bottom: none; }
+.roster-item .rname { flex: 1; font-weight: 600; font-size: 14px; display: flex; align-items: center; gap: 6px; overflow: hidden; }
+.guest-tag { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.3px; background: #fff4e5; color: #b45309; padding: 2px 7px; border-radius: 10px; flex-shrink: 0; }
+.mini-toggle { padding: 4px 10px; border: 1.5px solid var(--border); border-radius: 14px; background: #fafafa; font-size: 11px; font-weight: 700; color: var(--muted); cursor: pointer; flex-shrink: 0; }
+.mini-toggle.on { background: #fff4e5; border-color: #f0b866; color: #b45309; }
+.mini-btn { width: 30px; height: 30px; border: 1.5px solid var(--border); border-radius: 8px; background: #fafafa; cursor: pointer; font-size: 15px; color: var(--blue); flex-shrink: 0; }
+.mini-btn.danger { color: var(--red); font-weight: 800; }
+.guest-check { display: inline-flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; font-weight: 600; color: var(--text); text-transform: none; letter-spacing: 0; cursor: pointer; }
+.guest-check .box { width: 20px; height: 20px; border: 1.5px solid var(--border); border-radius: 5px; display: inline-flex; align-items: center; justify-content: center; color: #fff; font-size: 13px; }
+.guest-check .box.on { background: var(--accent); border-color: var(--accent); }
+
 /* Rectangle table with people around it */
 .table-wrap { position: relative; width: 100%; max-width: 380px; margin: 0 auto; aspect-ratio: 3 / 2; }
 .table-rect {
@@ -338,14 +352,15 @@ let saveTimer = null;
 
 /* Outline badge icons (stroke = currentColor; colour set via .ic-* class). */
 const ICON_KING = '<svg class="ic ic-king" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M3 7l4 4 5-6 5 6 4-4-2 12H5L3 7z"/><path d="M5 20h14"/></svg>';
-const ICON_JOKER = '<svg class="ic ic-joker" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M5 15c0-4 3-7 7-7s7 3 7 7"/><path d="M4.5 15h15"/><path d="M8 9.4 6.7 6.3"/><circle cx="6.2" cy="5.1" r="1.15"/><path d="M12 8V4.7"/><circle cx="12" cy="3.5" r="1.15"/><path d="M16 9.4 17.3 6.3"/><circle cx="17.8" cy="5.1" r="1.15"/></svg>';
+const ICON_JOKER = '<svg class="ic ic-joker" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 13h14a1.7 1.7 0 0 1 1.7 1.7v.6A1.7 1.7 0 0 1 19 17H5a1.7 1.7 0 0 1-1.7-1.7v-.6A1.7 1.7 0 0 1 5 13z"/><path d="M7.2 13 3.6 6.9 8.9 10z"/><path d="M9.9 12 12 4.3 14.1 12z"/><path d="M16.8 13 20.4 6.9 15.1 10z"/><circle cx="3" cy="6" r="1.5"/><circle cx="12" cy="3.4" r="1.5"/><circle cx="21" cy="6" r="1.5"/></svg>';
 const ICON_CROSS = '<svg class="ic ic-cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
 // Lifted Joker = the cross sits on top of the Joker icon.
 function iconCrossed(sm) { return '<span class="ic-stack' + (sm ? ' ic-sm' : '') + '" title="Joker lifted">' + ICON_JOKER + ICON_CROSS + '</span>'; }
 
 let state = {
-    data: { season: [], roster: [] },
+    data: { season: [], roster: [], guests: [] },
     playerCount: 10,
+    newGuest: false,
     seats: [],
     bid: 28,
     bidType: 'team',
@@ -375,6 +390,7 @@ function localLoad() {
         const saved = localStorage.getItem('thuruppu-data');
         if (saved) state.data = JSON.parse(saved);
         if (!state.data.roster) state.data.roster = state.data.savedPlayers || [];
+        if (!state.data.guests) state.data.guests = [];
         const prefs = localStorage.getItem('thuruppu-prefs');
         if (prefs) {
             const p = JSON.parse(prefs);
@@ -441,6 +457,7 @@ async function serverLoad() {
         if (serverData.season && serverData.season.length > 0) {
             state.data = serverData;
             if (!state.data.roster) state.data.roster = [];
+            if (!state.data.guests) state.data.guests = [];
             ensureWeekIds();
             localSave();
         } else if (state.data.season.length > 0 || (state.data.roster && state.data.roster.length)) {
@@ -522,6 +539,17 @@ function currentWeekIdx() {
 }
 
 /* ---------- roster ---------- */
+function isGuest(name) { return (state.data.guests || []).includes(name); }
+function guestTag(name) { return isGuest(name) ? ' <span class="guest-tag">Guest</span>' : ''; }
+function toggleNewGuest() { state.newGuest = !state.newGuest; renderRosterTab(); }
+function toggleGuest(name) {
+    if (!state.data.guests) state.data.guests = [];
+    if (isGuest(name)) state.data.guests = state.data.guests.filter(g => g !== name);
+    else state.data.guests.push(name);
+    persist();
+    render();
+    toast(name + (isGuest(name) ? ' marked as guest' : ' is now a regular'));
+}
 function addRosterPlayer() {
     const input = document.getElementById('new-player');
     const name = (input ? input.value : '').trim();
@@ -529,13 +557,15 @@ function addRosterPlayer() {
     if (state.data.roster.includes(name)) { toast(name + ' is already in the roster'); return; }
     state.data.roster.push(name);
     state.data.roster.sort((a,b) => a.localeCompare(b));
+    if (state.newGuest && !isGuest(name)) state.data.guests.push(name);
     persist();
     render();
-    toast(name + ' added to roster');
+    toast(name + (state.newGuest ? ' added as guest' : ' added to roster'));
 }
 function removeRosterPlayer(name) {
     if (!confirm('Remove ' + name + ' from roster? (Past game history is kept)')) return;
     state.data.roster = state.data.roster.filter(p => p !== name);
+    state.data.guests = (state.data.guests || []).filter(g => g !== name);
     state.seats = state.seats.map(s => s === name ? '' : s);
     if (state.past && state.past.team) delete state.past.team[name];
     persist();
@@ -548,6 +578,7 @@ function renameRosterPlayer(oldName) {
     const map = s => (s === oldName ? newName : s);
 
     state.data.roster = state.data.roster.map(map).sort((a, b) => a.localeCompare(b));
+    state.data.guests = (state.data.guests || []).map(map);
     state.seats = state.seats.map(map);
 
     if (state.past) {
@@ -907,6 +938,7 @@ function importData(ev) {
         try {
             state.data = JSON.parse(e.target.result);
             if (!state.data.roster) state.data.roster = [];
+            if (!state.data.guests) state.data.guests = [];
             ensureWeekIds();
             persist(); render();
             toast('Data imported');
@@ -1073,22 +1105,28 @@ function renderGameTab() {
 }
 
 function renderRosterTab() {
-    const rosterChips = state.data.roster.length
-        ? '<div class="roster-chips">' + state.data.roster.map(p => {
+    const guestCount = (state.data.guests || []).length;
+    const rosterList = state.data.roster.length
+        ? '<div class="roster-list">' + state.data.roster.map(p => {
             const arg = "'" + esc(p).replace(/'/g, "\\'") + "'";
-            return '<span class="chip">' + esc(p) +
-                '<span class="edit" title="Rename" onclick="renameRosterPlayer(' + arg + ')">&#9998;</span>' +
-                '<span class="x" title="Remove" onclick="removeRosterPlayer(' + arg + ')">&times;</span></span>';
+            const g = isGuest(p);
+            return '<div class="roster-item">' +
+                '<span class="rname">' + esc(p) + (g ? ' <span class="guest-tag">Guest</span>' : '') + '</span>' +
+                '<button class="mini-toggle' + (g ? ' on' : '') + '" title="Toggle guest" onclick="toggleGuest(' + arg + ')">Guest</button>' +
+                '<button class="mini-btn" title="Rename" onclick="renameRosterPlayer(' + arg + ')">&#9998;</button>' +
+                '<button class="mini-btn danger" title="Remove" onclick="removeRosterPlayer(' + arg + ')">&times;</button>' +
+                '</div>';
         }).join('') + '</div>'
         : '<div class="meta">No players yet. Add your regulars once &mdash; they will be remembered across game nights.</div>';
 
     document.getElementById('tab-roster').innerHTML =
-        '<div class="card"><h3>Roster (' + state.data.roster.length + ' players)</h3>' +
-        '<div class="hint" style="margin-bottom:12px;">Your regular players. Tap &#9998; to rename (updates past games too) or &times; to remove. Removing a player keeps past game history.</div>' +
-        rosterChips +
-        '<div class="add-row" style="margin-top:12px;">' +
+        '<div class="card"><h3>Roster (' + state.data.roster.length + ' players' + (guestCount ? ', ' + guestCount + ' guest' + (guestCount > 1 ? 's' : '') : '') + ')</h3>' +
+        '<div class="hint" style="margin-bottom:12px;">Your players. Tap <strong>Guest</strong> to mark someone as a guest, &#9998; to rename (updates past games too), or &times; to remove. Removing keeps past game history.</div>' +
+        rosterList +
+        '<div class="add-row" style="margin-top:14px;">' +
         '<input id="new-player" type="text" placeholder="Add player name" onkeydown="if(event.key===\'Enter\')addRosterPlayer()">' +
         '<button class="btn" onclick="addRosterPlayer()">Add</button></div>' +
+        '<label class="guest-check" onclick="toggleNewGuest()"><span class="box' + (state.newGuest ? ' on' : '') + '">' + (state.newGuest ? '&#10003;' : '') + '</span> Add as guest</label>' +
         '</div>';
 }
 
@@ -1270,7 +1308,7 @@ function renderSeasonTab() {
                 leaderboard.map((p, i) =>
                     '<tr>' +
                     '<td><span class="lb-rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '') + '">' + (i + 1) + '</span></td>' +
-                    '<td class="col-name">' + esc(p.name) + '<div class="lb-sub">' + p.roundWins + ' round wins \u00b7 ' + p.weeks + ' weeks</div></td>' +
+                    '<td class="col-name">' + esc(p.name) + guestTag(p.name) + '<div class="lb-sub">' + p.roundWins + ' round wins \u00b7 ' + p.weeks + ' weeks</div></td>' +
                     '<td>' + (p.kings || 0) + '</td>' +
                     '<td>' + (p.jokers || 0) + '</td>' +
                     '<td>' + (p.crossed || 0) + '</td>' +
@@ -1305,7 +1343,7 @@ function renderSeasonTab() {
                         total += c.base + c.bonus;
                         return '<td>' + round2(c.base) + (c.bonus ? '<span class="wk-bonus">+' + c.bonus + '</span>' : '') + '</td>';
                     }).join('');
-                    return '<tr><td class="col-name">' + esc(pl.name) + '</td>' + cells + '<td class="lb-pts-cell">' + round2(total) + '</td></tr>';
+                    return '<tr><td class="col-name">' + esc(pl.name) + guestTag(pl.name) + '</td>' + cells + '<td class="lb-pts-cell">' + round2(total) + '</td></tr>';
                 }).join('') +
                 '</tbody></table></div>' +
                 '<div class="hint">Each cell is that week\'s points as <strong>won<span class="wk-bonus">+bonus</span></strong> (bonus = King Maker / lifted Joker, +2 each). \u2013 = didn\'t play.</div>';

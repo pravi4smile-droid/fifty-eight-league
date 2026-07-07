@@ -58,8 +58,8 @@ async function loadAll() {
     if (!index) {
         // Migration path: fall back to the legacy single blob if present.
         const legacy = await readJson(LEGACY_KEY);
-        if (legacy) return { season: legacy.season || [], roster: legacy.roster || [] };
-        return { season: [], roster: [] };
+        if (legacy) return { season: legacy.season || [], roster: legacy.roster || [], guests: legacy.guests || [] };
+        return { season: [], roster: [], guests: [] };
     }
     const [rosterObj, weeks] = await Promise.all([
         readJson(ROSTER_KEY),
@@ -67,13 +67,15 @@ async function loadAll() {
     ]);
     return {
         season: weeks.filter(Boolean),
-        roster: (rosterObj && rosterObj.roster) || []
+        roster: (rosterObj && rosterObj.roster) || [],
+        guests: (rosterObj && rosterObj.guests) || []
     };
 }
 
 async function saveAll(data) {
     const season = Array.isArray(data.season) ? data.season : [];
     const roster = Array.isArray(data.roster) ? data.roster : [];
+    const guests = Array.isArray(data.guests) ? data.guests : [];
 
     const oldIndex = await readJson(INDEX_KEY);
     const oldHash = {};
@@ -93,7 +95,7 @@ async function saveAll(data) {
         weeksMeta.push({ id: w.id, week: w.week, date: w.date, key, hash });
     }
 
-    writes.push(writeJson(ROSTER_KEY, { roster }));
+    writes.push(writeJson(ROSTER_KEY, { roster, guests }));
     await Promise.all(writes);
     await writeJson(INDEX_KEY, { weeks: weeksMeta, savedAt: new Date().toISOString() });
 
