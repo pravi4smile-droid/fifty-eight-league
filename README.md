@@ -51,7 +51,7 @@ winning team:
 - 🃏 **Joker** — every player on the losing team gets a Joker (tracked as a
   count, no points).
 - ❌🃏 **Lifted Joker** — tap any losing player who lifted their Joker away; they
-  get **+2**.
+  get **+1**.
 
 A week can have several 12-0 rounds (e.g. one 12-0 and one 0-12). The leaderboard
 shows each player's total 👑 / 🃏 / ❌🃏 counts and folds the badge points into
