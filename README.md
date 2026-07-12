@@ -47,15 +47,15 @@ rounds** (only when a round was actually won 12-0). For each one, pick the
 winning team:
 
 - 👑 **King Maker** — every player on the winning team gets a King Maker badge
-  worth **+2** points.
+  (tracked as a count, no points).
 - 🃏 **Joker** — every player on the losing team gets a Joker (tracked as a
   count, no points).
-- ❌🃏 **Lifted Joker** — tap any losing player who lifted their Joker away; they
-  get **+1**.
+- ❌🃏 **Lifted Joker** — tap any losing player who lifted their Joker away
+  (tracked as a count, no points).
 
 A week can have several 12-0 rounds (e.g. one 12-0 and one 0-12). The leaderboard
-shows each player's total 👑 / 🃏 / ❌🃏 counts and folds the badge points into
-their score.
+shows each player's total 👑 / 🃏 / ❌🃏 counts. Badges are for bragging rights
+only — they do not affect points.
 
 ## Deploy to Vercel (one time, ~5 minutes)
 
