@@ -662,14 +662,14 @@ function koEditorHtml(ctx, team1, team2) {
             '<button class="' + (r.winner === 'team2' ? 'on-t2' : '') + '" onclick="setKoWinner(\'' + ctx + '\',' + i + ',\'team2\')">Team 2 won 12-0</button>' +
             '</div>' +
             '<div class="hint">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + ' King Maker (+2 each): ' + (winTeam.length ? winTeam.map(esc).join(', ') : '—') + '</div>' +
-            '<div class="hint" style="margin-top:6px;">' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + ' Jokers &mdash; tap anyone who lifted theirs (+1):</div>' +
+            '<div class="hint" style="margin-top:6px;">' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + ' Jokers &mdash; tap anyone who lifted theirs:</div>' +
             '<div class="ko-jokers">' + jokers + '</div>' +
             '</div>';
     }).join('');
     const canUse = team1.length && team2.length;
     return '<div style="margin-top:14px;">' +
         '<label>12-0 rounds (King Maker / Joker)</label>' +
-        '<div class="hint" style="margin-bottom:8px;">Add a round here <strong>only if it ended 12-0</strong>. The winning team each get a King Maker badge (+2); the losers each get a Joker &mdash; tap any loser who lifted theirs (+1). Add one per 12-0 round (a week can have several).</div>' +
+        '<div class="hint" style="margin-bottom:8px;">Add a round here <strong>only if it ended 12-0</strong>. The winning team each get a King Maker badge; the losers each get a Joker &mdash; tap any loser who lifted theirs. Add one per 12-0 round (a week can have several).</div>' +
         (canUse
             ? rows + '<button class="btn subtle" onclick="addKoRound(\'' + ctx + '\')">+ Add a 12-0 round</button>'
             : '<div class="meta">Assign both teams first to add 12-0 rounds.</div>') +
@@ -1277,9 +1277,9 @@ function renderSeasonTab() {
             ko.forEach(r => {
                 const kings = r.winner === 'team1' ? t1 : t2;
                 const losers = r.winner === 'team1' ? t2 : t1;
-                kings.forEach(p => { const s = stat(p); s.kings++; s.points += 2; s.tallied = true; });
+                kings.forEach(p => { stat(p).kings++; });
                 losers.forEach(p => { stat(p).jokers++; });
-                (r.crossed || []).forEach(p => { const s = stat(p); s.crossed++; s.points += 1; s.tallied = true; });
+                (r.crossed || []).forEach(p => { stat(p).crossed++; });
             });
         });
 
@@ -1323,19 +1323,13 @@ function renderSeasonTab() {
                     '<td class="lb-pts-cell ' + (sortBy === 'points' ? 'sorted' : '') + '" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(p.points) + '</td>' +
                     '</tr>').join('') +
                 '</tbody></table></div>' +
-                '<div class="hint">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + ' King Maker \u00b7 ' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + ' Jokers \u00b7 ' + iconCrossed(true) + ' lifted Joker \u00b7 PPGW = points \u00f7 weeks played. Points = tally + King Maker (+2) + lifted Joker (+1).</div>';
+                '<div class="hint">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + ' King Maker \u00b7 ' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + ' Jokers \u00b7 ' + iconCrossed(true) + ' lifted Joker \u00b7 PPGW = points \u00f7 weeks played. Points = tally (badges are counted but add no points).</div>';
 
-            // Weekly breakdown: base "points won" + bonus (King Maker / lifted Joker).
+            // Weekly breakdown: "points won" (badges add no points).
             const cellFor = (w, p) => {
                 if (!weekPlayers(w).includes(p)) return null;
                 const base = (w.finalTally && w.finalTally[p] !== undefined) ? w.finalTally[p] : 0;
-                let bonus = 0;
-                (w.koRounds || []).forEach(r => {
-                    const kings = r.winner === 'team1' ? ((w.players && w.players.team1) || []) : ((w.players && w.players.team2) || []);
-                    if (kings.includes(p)) bonus += 2;
-                    if ((r.crossed || []).includes(p)) bonus += 2;
-                });
-                return { base, bonus };
+                return { base };
             };
             const weeklyHtml =
                 '<div class="lb-table-wrap"><table class="lb-table wk-table"><thead><tr>' +
@@ -1347,13 +1341,13 @@ function renderSeasonTab() {
                     const cells = season.map(w => {
                         const c = cellFor(w, pl.name);
                         if (!c) return '<td class="wk-empty">\u2013</td>';
-                        total += c.base + c.bonus;
-                        return '<td>' + round2(c.base) + (c.bonus ? '<span class="wk-bonus">+' + c.bonus + '</span>' : '') + '</td>';
+                        total += c.base;
+                        return '<td>' + round2(c.base) + '</td>';
                     }).join('');
                     return '<tr><td class="col-name">' + esc(pl.name) + guestTag(pl.name) + '</td>' + cells + '<td class="lb-pts-cell">' + round2(total) + '</td></tr>';
                 }).join('') +
                 '</tbody></table></div>' +
-                '<div class="hint">Each cell is that week\'s points as <strong>won<span class="wk-bonus">+bonus</span></strong> (bonus = King Maker +2 / lifted Joker +1). \u2013 = didn\'t play.</div>';
+                '<div class="hint">Each cell is that week\'s points won. \u2013 = didn\'t play.</div>';
 
             html += '<div class="card"><h3>Player leaderboard</h3>' +
                 '<div class="lb-view">' +
