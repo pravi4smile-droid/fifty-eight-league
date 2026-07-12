@@ -328,18 +328,13 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
         <h1>&#127924; Thuruppu Tracker</h1>
         <span class="sync-status" id="sync-status">Connecting...</span>
     </div>
-    <div class="scoreboard-sticky" id="scoreboard"></div>
-    <div id="tab-game"></div>
-    <div id="tab-week" style="display:none;"></div>
-    <div id="tab-season" style="display:none;"></div>
+    <div id="tab-season"></div>
     <div id="tab-roster" style="display:none;"></div>
     <div id="tab-data" style="display:none;"></div>
 </div>
 
 <div class="tabbar">
-    <button class="active" data-tab="game" onclick="switchTab('game')"><span class="ico">&#10133;</span>New game</button>
-    <button data-tab="week" onclick="switchTab('week')"><span class="ico">&#128203;</span>This week</button>
-    <button data-tab="season" onclick="switchTab('season')"><span class="ico">&#127942;</span>Season</button>
+    <button class="active" data-tab="season" onclick="switchTab('season')"><span class="ico">&#127942;</span>Season</button>
     <button data-tab="roster" onclick="switchTab('roster')"><span class="ico">&#128101;</span>Roster</button>
     <button data-tab="data" onclick="switchTab('data')"><span class="ico">&#128190;</span>Data</button>
 </div>
@@ -359,16 +354,9 @@ function iconCrossed(sm) { return '<span class="ic-stack' + (sm ? ' ic-sm' : '')
 
 let state = {
     data: { season: [], roster: [], guests: [] },
-    playerCount: 10,
     newGuest: false,
-    seats: [],
-    bid: 28,
-    bidType: 'team',
-    bidTeam: 'team1',
-    bidMade: true,
-    activeTab: 'game',
+    activeTab: 'season',
     newPlayerName: '',
-    showSeatList: false,
     lbSort: 'points',
     lbView: 'ranking',
     showPast: false,
@@ -391,20 +379,12 @@ function localLoad() {
         if (saved) state.data = JSON.parse(saved);
         if (!state.data.roster) state.data.roster = state.data.savedPlayers || [];
         if (!state.data.guests) state.data.guests = [];
-        const prefs = localStorage.getItem('thuruppu-prefs');
-        if (prefs) {
-            const p = JSON.parse(prefs);
-            state.playerCount = p.playerCount || 10;
-            state.seats = p.seats || [];
-        }
     } catch (e) {}
     ensureWeekIds();
-    ensureSeats();
 }
 function localSave() {
     try {
         localStorage.setItem('thuruppu-data', JSON.stringify(state.data));
-        localStorage.setItem('thuruppu-prefs', JSON.stringify({ playerCount: state.playerCount, seats: state.seats }));
     } catch (e) {}
 }
 /* ---------- auth ---------- */
@@ -503,40 +483,6 @@ function toast(msg) {
 }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;'); }
 function round2(n) { return Math.round(n * 100) / 100; }
-function ensureSeats() {
-    while (state.seats.length < state.playerCount) state.seats.push('');
-}
-function seatName(i) { return state.seats[i] || ''; }
-function getTeams() {
-    const team1 = [], team2 = [];
-    for (let i = 0; i < state.playerCount; i++) {
-        const n = seatName(i) || ('Seat ' + (i + 1));
-        (i % 2 === 0 ? team1 : team2).push(n);
-    }
-    return { team1, team2 };
-}
-function seatsFilled() {
-    for (let i = 0; i < state.playerCount; i++) if (!seatName(i)) return false;
-    return true;
-}
-function calcScore(bid, bidType, bidTeam, bidMade) {
-    const high = bid > 40;
-    let bidding, opposite;
-    if (bidType === 'thani') { bidding = bidMade ? 3 : -4; opposite = bidMade ? -3 : 4; }
-    else if (bidMade) { bidding = high ? 2 : 1; opposite = high ? -2 : -1; }
-    else { bidding = high ? -3 : -2; opposite = high ? 3 : 2; }
-    return { team1: bidTeam === 'team1' ? bidding : opposite, team2: bidTeam === 'team1' ? opposite : bidding };
-}
-function currentWeek() {
-    const s = state.data.season;
-    for (let i = s.length - 1; i >= 0; i--) if (!s[i].completed) return s[i];
-    return null;
-}
-function currentWeekIdx() {
-    const s = state.data.season;
-    for (let i = s.length - 1; i >= 0; i--) if (!s[i].completed) return i;
-    return s.length - 1;
-}
 
 /* ---------- roster ---------- */
 function isGuest(name) { return (state.data.guests || []).includes(name); }
@@ -566,7 +512,6 @@ function removeRosterPlayer(name) {
     if (!confirm('Remove ' + name + ' from roster? (Past game history is kept)')) return;
     state.data.roster = state.data.roster.filter(p => p !== name);
     state.data.guests = (state.data.guests || []).filter(g => g !== name);
-    state.seats = state.seats.map(s => s === name ? '' : s);
     if (state.past && state.past.team) delete state.past.team[name];
     persist();
     render();
@@ -579,7 +524,6 @@ function renameRosterPlayer(oldName) {
 
     state.data.roster = state.data.roster.map(map).sort((a, b) => a.localeCompare(b));
     state.data.guests = (state.data.guests || []).map(map);
-    state.seats = state.seats.map(map);
 
     if (state.past) {
         if (state.past.team && state.past.team[oldName] !== undefined) {
@@ -720,7 +664,7 @@ function savePastDay() {
     state.past = { date: '', team: {}, score1: '', score2: '', points: {}, ko: [] };
     state.showPast = false;
     persist(); render();
-    toast('Past game day saved for ' + week.date);
+    toast('Game day saved for ' + week.date);
 }
 
 /* ---------- edit a previous week's points ---------- */
@@ -789,135 +733,15 @@ function editWeekSave() {
 function switchTab(name) {
     state.activeTab = name;
     state.editWeek = null; state.editBuf = null;
-    ['game','week','season','roster','data'].forEach(t => {
+    ['season','roster','data'].forEach(t => {
         document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
     });
     document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     render();
     window.scrollTo(0, 0);
 }
-function setPlayerCount(c) {
-    state.playerCount = c;
-    ensureSeats();
-    localSave();
-    renderGameTab();
-}
-function setSeat(i, v) {
-    state.seats[i] = v;
-    localSave();
-    renderGameTab();
-}
-function autoFill() {
-    const taken = new Set(state.seats.slice(0, state.playerCount).filter(Boolean));
-    const available = state.data.roster.filter(p => !taken.has(p));
-    for (let i = 0; i < state.playerCount; i++) {
-        if (!state.seats[i] && available.length) state.seats[i] = available.shift();
-    }
-    localSave();
-    renderGameTab();
-}
-function clearSeats() {
-    for (let i = 0; i < state.seats.length; i++) state.seats[i] = '';
-    localSave();
-    renderGameTab();
-}
-function toggleSeatList() { state.showSeatList = !state.showSeatList; renderGameTab(); }
 function setLbSort(mode) { state.lbSort = mode; renderSeasonTab(); }
 function setLbView(mode) { state.lbView = mode; renderSeasonTab(); }
-function setBid(v) {
-    state.bid = Math.max(28, Math.min(56, parseInt(v) || 28));
-    renderBidHint(); renderPreview();
-}
-function setField(f, v) { state[f] = v; renderGameTab(); }
-
-function addGame() {
-    if (!seatsFilled()) { toast('Assign a player to every seat first'); return; }
-    const scores = calcScore(state.bid, state.bidType, state.bidTeam, state.bidMade);
-    let week = currentWeek();
-    const teams = getTeams();
-
-    if (!week || week.completed) {
-        week = { id: genId(), week: state.data.season.length + 1, date: new Date().toISOString().split('T')[0],
-                 games: [], teamScores: { team1: 6, team2: 6 }, players: teams, rounds: [] };
-        state.data.season.push(week);
-    }
-
-    week.games.push({
-        id: Date.now(), playerCount: state.playerCount,
-        team1: teams.team1, team2: teams.team2,
-        bid: state.bid, bidType: state.bidType, bidTeam: state.bidTeam, bidMade: state.bidMade,
-        scores, timestamp: new Date().toISOString()
-    });
-
-    week.teamScores.team1 += scores.team1;
-    week.teamScores.team2 += scores.team2;
-    week.players = teams;
-
-    let resetMsg = '';
-    if (week.teamScores.team1 <= -1 || week.teamScores.team2 <= -1) {
-        const winner = week.teamScores.team1 <= -1 ? 'team2' : 'team1';
-        if (!week.rounds) week.rounds = [];
-        week.rounds.push({ winner, winnerPlayers: teams[winner].slice(), endedAt: new Date().toISOString() });
-        week.teamScores = { team1: 6, team2: 6 };
-        resetMsg = ' \u2014 ' + (winner === 'team1' ? 'Team 1' : 'Team 2') + ' wins the round! Back to 6-6';
-    }
-
-    persist();
-    state.bid = 28; state.bidType = 'team'; state.bidMade = true;
-    render();
-    toast('Game saved' + resetMsg);
-}
-
-function undoLast() {
-    const week = currentWeek();
-    if (!week || week.games.length === 0) { toast('Nothing to undo'); return; }
-    week.games.pop();
-    recalcWeek(week);
-    persist(); render();
-    toast('Last game removed');
-}
-function deleteGame(weekIdx, gameIdx) {
-    if (!confirm('Delete this game? Week scores and rounds will be recalculated.')) return;
-    const week = state.data.season[weekIdx];
-    week.games.splice(gameIdx, 1);
-    recalcWeek(week);
-    persist(); render();
-    toast('Game deleted');
-}
-function recalcWeek(week) {
-    week.teamScores = { team1: 6, team2: 6 };
-    week.rounds = [];
-    week.games.forEach(g => {
-        week.teamScores.team1 += g.scores.team1;
-        week.teamScores.team2 += g.scores.team2;
-        if (week.teamScores.team1 <= -1 || week.teamScores.team2 <= -1) {
-            const winner = week.teamScores.team1 <= -1 ? 'team2' : 'team1';
-            week.rounds.push({ winner, winnerPlayers: (winner === 'team1' ? g.team1 : g.team2).slice() });
-            week.teamScores = { team1: 6, team2: 6 };
-        }
-    });
-}
-
-function endWeek() {
-    const week = currentWeek();
-    if (!week || week.completed) { toast('No active week'); return; }
-    if (!confirm('Close Week ' + week.week + '? Next game will start a fresh week.')) return;
-    week.completed = true;
-    persist(); render();
-    toast('Week ' + week.week + ' closed');
-}
-
-function saveTally(weekIdx) {
-    const week = state.data.season[weekIdx];
-    const inputs = document.querySelectorAll('.tally-input');
-    week.finalTally = {};
-    inputs.forEach(inp => {
-        const v = parseFloat(inp.value);
-        if (!isNaN(v)) week.finalTally[inp.dataset.player] = v;
-    });
-    persist(); render();
-    toast('Final tally saved for Week ' + week.week);
-}
 
 function exportData() {
     const json = JSON.stringify(state.data, null, 2);
@@ -952,158 +776,6 @@ function copyJson() {
 }
 
 /* ---------- rendering ---------- */
-function renderScoreboard() {
-    const el = document.getElementById('scoreboard');
-    // The live score only matters while setting up / playing on the New game tab.
-    if (state.activeTab !== 'game') { el.style.display = 'none'; return; }
-    el.style.display = 'flex';
-    const week = currentWeek();
-    const active = week && !week.completed;
-    const t1 = active ? week.teamScores.team1 : 6;
-    const t2 = active ? week.teamScores.team2 : 6;
-    el.innerHTML =
-        '<div class="sb-team"><div class="sb-label">Team 1</div><div class="sb-score t1">' + t1 + '</div></div>' +
-        '<div class="sb-vs">' + (active ? 'Week ' + week.week : 'Ready') + '</div>' +
-        '<div class="sb-team"><div class="sb-label">Team 2</div><div class="sb-score t2">' + t2 + '</div></div>';
-}
-
-// Outline person icon (no fill) — team colour is applied via stroke=currentColor.
-const PERSON_SVG = '<svg class="person" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>';
-
-// Seats placed on the edges of the table rectangle, in clockwise index order
-// (top L->R, right T->B, bottom R->L, left B->T) so alternate seats = alternate teams.
-// Short sides (left/right) get 1 each; long sides (top/bottom) get the rest.
-// For 10 players: 2 on each short side and 3 on each long side.
-// Table rectangle edges in wrap %, matching .table-rect (left 18% width 64%, top 27% height 46%).
-const T_TOP = 27, T_BOT = 73, T_LEFT = 18, T_RIGHT = 82;
-
-function seatLayout(n) {
-    let top, bottom, left, right;
-    if (n >= 10) { top = 3; bottom = 3; left = 2; right = 2; }
-    else { left = 1; right = 1; const long = n - 2; top = Math.ceil(long / 2); bottom = long - top; }
-
-    // Distribute along each edge, inset a little from the corners.
-    const hx = (j, k) => (T_LEFT + 4) + ((j + 0.5) / k) * ((T_RIGHT - 4) - (T_LEFT + 4));
-    const vy = (j, k) => (T_TOP + 4) + ((j + 0.5) / k) * ((T_BOT - 4) - (T_TOP + 4));
-
-    const pos = [];
-    for (let j = 0; j < top; j++) pos.push({ side: 'top', x: hx(j, top), y: T_TOP - 1 });
-    for (let j = 0; j < right; j++) pos.push({ side: 'right', x: T_RIGHT + 1, y: vy(j, right) });
-    for (let j = 0; j < bottom; j++) pos.push({ side: 'bottom', x: hx(bottom - 1 - j, bottom), y: T_BOT + 1 });
-    for (let j = 0; j < left; j++) pos.push({ side: 'left', x: T_LEFT - 1, y: vy(left - 1 - j, left) });
-    return pos;
-}
-
-function renderTable() {
-    const n = state.playerCount;
-    const positions = seatLayout(n);
-    let seatsHtml = '';
-    for (let i = 0; i < n; i++) {
-        const { x, y, side } = positions[i];
-        const name = seatName(i);
-        // Tap the seat -> the overlaid (invisible) native select opens a name picker.
-        seatsHtml += '<div class="seat ' + side + ' ' + (i % 2 === 0 ? 't1' : 't2') + (name ? '' : ' empty') +
-            '" style="left:' + x.toFixed(1) + '%;top:' + y.toFixed(1) + '%;">' +
-            PERSON_SVG +
-            '<span class="seat-name">' + (name ? esc(name) : 'Seat ' + (i + 1)) + '</span>' +
-            '<select class="seat-select" aria-label="Seat ' + (i + 1) + '" onchange="setSeat(' + i + ', this.value)">' + seatOptions(i) + '</select>' +
-            '</div>';
-    }
-    return '<div class="table-wrap"><div class="table-rect">THURUPPU</div>' + seatsHtml + '</div>' +
-        '<div class="hint" style="text-align:center;">Tap a seat to choose a player.</div>' +
-        '<div class="legend"><span><span class="dot" style="background:var(--blue)"></span>Team 1</span>' +
-        '<span><span class="dot" style="background:var(--red)"></span>Team 2</span></div>';
-}
-
-function renderBidHint() {
-    const el = document.getElementById('bid-hint');
-    if (!el) return;
-    el.textContent = state.bidType === 'thani'
-        ? 'Thani: win +3 / lose -4 (opposite mirrors)'
-        : (state.bid > 40 ? 'High bid (>40): win +2 / lose -3' : 'Normal bid: win +1 / lose -2');
-}
-function renderPreview() {
-    const el = document.getElementById('preview-strip');
-    if (!el) return;
-    const s = calcScore(state.bid, state.bidType, state.bidTeam, state.bidMade);
-    el.innerHTML =
-        '<div style="text-align:center;padding:10px;border-radius:10px;background:#f7f8fa;font-weight:800;font-size:18px;color:' + (s.team1 >= 0 ? 'var(--green)' : 'var(--red)') + '">Team 1: ' + (s.team1 > 0 ? '+' : '') + s.team1 + '</div>' +
-        '<div style="text-align:center;padding:10px;border-radius:10px;background:#f7f8fa;font-weight:800;font-size:18px;color:' + (s.team2 >= 0 ? 'var(--green)' : 'var(--red)') + '">Team 2: ' + (s.team2 > 0 ? '+' : '') + s.team2 + '</div>';
-}
-
-function seatOptions(i) {
-    const current = seatName(i);
-    const takenElsewhere = new Set(state.seats.slice(0, state.playerCount).filter((s, j) => s && j !== i));
-    let opts = '<option value="">-- select --</option>';
-    state.data.roster.forEach(p => {
-        if (takenElsewhere.has(p)) return;
-        opts += '<option value="' + esc(p) + '"' + (p === current ? ' selected' : '') + '>' + esc(p) + '</option>';
-    });
-    return opts;
-}
-function seatDropdown(i) {
-    return '<select onchange="setSeat(' + i + ', this.value)">' + seatOptions(i) + '</select>';
-}
-
-function renderGameTab() {
-    ensureSeats();
-    const rosterHint = state.data.roster.length === 0
-        ? '<div class="meta" style="margin-bottom:12px;">No players yet &mdash; add your regulars in the <strong>Roster</strong> tab, then assign seats here.</div>'
-        : '';
-
-    let seatsHtml = '';
-    for (let i = 0; i < state.playerCount; i++) {
-        seatsHtml += '<div class="seat-row">' +
-            '<span class="pill ' + (i % 2 === 0 ? 't1' : 't2') + '">Seat ' + (i + 1) + '</span>' +
-            seatDropdown(i) + '</div>';
-    }
-
-    document.getElementById('tab-game').innerHTML =
-        '<div class="card"><h3>Tonight\'s table</h3>' +
-        rosterHint +
-        '<label>How many playing?</label>' +
-        '<div class="seg">' + [4,6,8,10].map(c =>
-            '<button class="' + (state.playerCount === c ? 'on' : '') + '" onclick="setPlayerCount(' + c + ')">' + c + '</button>').join('') +
-        '</div>' +
-        '<div class="hint">' + (state.playerCount === 10 ? '10 players: 6 cards each' : state.playerCount + ' players: 8 cards each') + ' \u00b7 Alternate seats = alternate teams</div>' +
-        '<div style="margin:14px 0;">' + renderTable() + '</div>' +
-        '<div class="row" style="margin-bottom:10px;">' +
-        '<button class="btn subtle" onclick="autoFill()">Auto-fill seats</button>' +
-        '<button class="btn subtle" onclick="clearSeats()">Clear seats</button></div>' +
-        '<button class="btn subtle collapse-btn" onclick="toggleSeatList()">' +
-        '<span>Assign seats from a list</span><span class="chev">' + (state.showSeatList ? '&#9650;' : '&#9660;') + '</span></button>' +
-        (state.showSeatList ? '<div style="margin-top:10px;">' + seatsHtml + '</div>' : '') +
-        '</div>' +
-
-        '<div class="card"><h3>The bid</h3>' +
-        '<div class="row">' +
-        '<div><label>Bid amount</label><input type="number" min="28" max="56" value="' + state.bid + '" oninput="setBid(this.value)"></div>' +
-        '<div><label>Bid type</label><select onchange="setField(\'bidType\', this.value)">' +
-        '<option value="team"' + (state.bidType === 'team' ? ' selected' : '') + '>Team bid</option>' +
-        '<option value="thani"' + (state.bidType === 'thani' ? ' selected' : '') + '>Thani (self)</option>' +
-        '</select></div></div>' +
-        '<div class="hint" id="bid-hint"></div>' +
-        '<div style="margin-top:12px;"><label>Bidding team</label>' +
-        '<div class="seg2">' +
-        '<button class="' + (state.bidTeam === 'team1' ? 'on-t1' : '') + '" onclick="setField(\'bidTeam\',\'team1\')">Team 1</button>' +
-        '<button class="' + (state.bidTeam === 'team2' ? 'on-t2' : '') + '" onclick="setField(\'bidTeam\',\'team2\')">Team 2</button>' +
-        '</div></div>' +
-        '<div style="margin-top:12px;"><label>Result</label>' +
-        '<div class="seg2">' +
-        '<button class="' + (state.bidMade ? 'on-made' : '') + '" onclick="setField(\'bidMade\', true)">&#10003; Bid made</button>' +
-        '<button class="' + (!state.bidMade ? 'on-lost' : '') + '" onclick="setField(\'bidMade\', false)">&#10007; Bid lost</button>' +
-        '</div></div>' +
-        '<div class="row" id="preview-strip" style="margin:12px 0;"></div>' +
-        '<button class="btn green" onclick="addGame()">Save game</button>' +
-        '<div class="row" style="margin-top:8px;">' +
-        '<button class="btn subtle" onclick="undoLast()">Undo last game</button>' +
-        '<button class="btn subtle" onclick="endWeek()">End this week</button>' +
-        '</div></div>';
-
-    renderBidHint();
-    renderPreview();
-}
-
 function renderRosterTab() {
     const guestCount = (state.data.guests || []).length;
     const rosterList = state.data.roster.length
@@ -1137,75 +809,13 @@ function weekPlayers(week) {
     return Array.from(set);
 }
 
-function gameCardHtml(game, weekIdx, gameIdx, num) {
-    const winT1 = game.scores.team1 > 0;
-    return '<div class="card game-card ' + (winT1 ? 'win-t1' : 'win-t2') + '">' +
-        '<div style="display:flex;justify-content:space-between;align-items:flex-start;">' +
-        '<div><strong style="font-size:14px;">Game ' + num + '</strong><div class="meta">' +
-        new Date(game.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) + ' \u00b7 ' + game.playerCount + ' players</div></div>' +
-        '<button class="btn danger small" onclick="deleteGame(' + weekIdx + ',' + gameIdx + ')">Delete</button></div>' +
-        '<div style="margin:8px 0 4px;">' +
-        '<span class="badge">Bid ' + game.bid + '</span>' +
-        (game.bidType === 'thani' ? '<span class="badge thani">Thani</span>' : '') +
-        '<span class="badge ' + (game.bidMade ? 'made' : 'lost') + '">' + (game.bidMade ? 'Made' : 'Lost') + '</span>' +
-        '<span class="badge">' + (game.bidTeam === 'team1' ? 'Team 1 bid' : 'Team 2 bid') + '</span></div>' +
-        '<div class="meta">T1: ' + game.team1.map(esc).join(', ') + '<br>T2: ' + game.team2.map(esc).join(', ') + '</div>' +
-        '<div style="display:flex;gap:10px;margin-top:10px;padding-top:8px;border-top:1px solid var(--border);font-weight:700;font-size:14px;">' +
-        '<div style="flex:1;text-align:center;color:' + (game.scores.team1 >= 0 ? 'var(--green)' : 'var(--red)') + '">Team 1: ' + (game.scores.team1 > 0 ? '+' : '') + game.scores.team1 + '</div>' +
-        '<div style="flex:1;text-align:center;color:' + (game.scores.team2 >= 0 ? 'var(--green)' : 'var(--red)') + '">Team 2: ' + (game.scores.team2 > 0 ? '+' : '') + game.scores.team2 + '</div>' +
-        '</div></div>';
-}
-
-function renderWeekTab() {
-    const weekIdx = currentWeekIdx();
-    const week = weekIdx >= 0 ? state.data.season[weekIdx] : null;
-    let html = '';
-
-    if (!week) {
-        html = '<div class="card"><div class="empty"><div class="big">&#127924;</div>No games yet.<br>Add your first game from the New game tab.</div></div>';
-    } else {
-        const rounds = week.rounds || [];
-        html += '<div class="week-title"><span>Week ' + week.week + (week.completed ? ' (closed)' : '') + '</span><span>' + week.date + '</span></div>';
-
-        if (rounds.length) {
-            html += '<div class="card"><h3>Rounds won this week</h3>' +
-                rounds.map((r, i) => '<div class="meta" style="margin-bottom:4px;">Round ' + (i + 1) + ': <strong style="color:' + (r.winner === 'team1' ? 'var(--blue)' : 'var(--red)') + '">' +
-                    (r.winner === 'team1' ? 'Team 1' : 'Team 2') + '</strong> (' + r.winnerPlayers.map(esc).join(', ') + ')</div>').join('') +
-                '</div>';
-        }
-
-        // Final tally entry
-        const players = weekPlayers(week);
-        if (players.length) {
-            const tally = week.finalTally || {};
-            html += '<div class="card"><h3>End of week - final points tally</h3>' +
-                '<div class="hint" style="margin-bottom:10px;">Enter what each player finished with (points or money). Feeds the season leaderboard.</div>' +
-                players.map(p =>
-                    '<div class="tally-row"><span class="tname">' + esc(p) + '</span>' +
-                    '<input class="tally-input" data-player="' + esc(p) + '" type="number" step="any" placeholder="0" value="' + (tally[p] !== undefined ? tally[p] : '') + '"></div>'
-                ).join('') +
-                '<button class="btn blue" style="margin-top:6px;" onclick="saveTally(' + weekIdx + ')">Save final tally</button>' +
-                '</div>';
-        }
-
-        if (week.games.length === 0) {
-            html += '<div class="card"><div class="empty">No games in this week yet</div></div>';
-        } else {
-            for (let i = week.games.length - 1; i >= 0; i--) {
-                html += gameCardHtml(week.games[i], weekIdx, i, i + 1);
-            }
-        }
-    }
-    document.getElementById('tab-week').innerHTML = html;
-}
-
 function pastFormHtml() {
     if (!state.showPast) {
-        return '<div class="card"><button class="btn subtle" onclick="togglePastForm()">&#128197; Add a past game day</button>' +
-            '<div class="hint">Log a night you played but didn\'t track live &mdash; pick the date, set the teams and the final score.</div></div>';
+        return '<div class="card"><button class="btn subtle" onclick="togglePastForm()">&#128197; Add a game day</button>' +
+            '<div class="hint">Record a week &mdash; pick the date, set the teams and each team\'s end-of-week score.</div></div>';
     }
     if (state.data.roster.length < 2) {
-        return '<div class="card"><h3>Add a past game day</h3>' +
+        return '<div class="card"><h3>Add a game day</h3>' +
             '<div class="meta">Add at least two players in the <strong>Roster</strong> tab first.</div>' +
             '<button class="btn subtle" style="margin-top:10px;" onclick="togglePastForm()">Cancel</button></div>';
     }
@@ -1227,7 +837,7 @@ function pastFormHtml() {
     const pT1 = state.data.roster.filter(p => state.past.team[p] === 'team1');
     const pT2 = state.data.roster.filter(p => state.past.team[p] === 'team2');
 
-    return '<div class="card"><h3>Add a past game day</h3>' +
+    return '<div class="card"><h3>Add a game day</h3>' +
         '<label>Game date</label>' +
         '<input type="date" value="' + esc(state.past.date) + '" max="' + new Date().toISOString().split('T')[0] + '" onchange="setPastDate(this.value)">' +
         '<label style="margin-top:14px;">Team score for the week</label>' +
@@ -1240,7 +850,7 @@ function pastFormHtml() {
         '<div class="hint" style="margin-bottom:10px;">Tap T1 or T2 for each player. The points box is optional &mdash; leave it blank to use the team score, or type a number to override just that player.</div>' +
         rows +
         koEditorHtml('past', pT1, pT2) +
-        '<button class="btn green" style="margin-top:14px;" onclick="savePastDay()">Save past game day</button>' +
+        '<button class="btn green" style="margin-top:14px;" onclick="savePastDay()">Save game day</button>' +
         '<button class="btn subtle" style="margin-top:8px;" onclick="togglePastForm()">Cancel</button>' +
         '</div>';
 }
@@ -1258,9 +868,7 @@ function renderSeasonTab() {
             if (!stats[p]) stats[p] = { points: 0, roundWins: 0, weeks: 0, tallied: false, kings: 0, jokers: 0, crossed: 0 };
             return stats[p];
         }
-        let totalGames = 0;
         season.forEach(w => {
-            totalGames += w.games.length;
             const t1 = (w.players && w.players.team1) || [];
             const t2 = (w.players && w.players.team2) || [];
             const ko = w.koRounds || [];
@@ -1360,7 +968,6 @@ function renderSeasonTab() {
 
         html += '<div class="card"><h3>Season stats</h3>' +
             '<div class="lb-row"><span class="lb-name">Weeks played</span><span class="lb-pts">' + season.length + '</span></div>' +
-            '<div class="lb-row"><span class="lb-name">Total games</span><span class="lb-pts">' + totalGames + '</span></div>' +
             '<div class="lb-row"><span class="lb-name">Players in season</span><span class="lb-pts">' + leaderboard.length + '</span></div>' +
             '</div>';
 
@@ -1463,9 +1070,6 @@ function renderDataTab() {
 }
 
 function render() {
-    renderScoreboard();
-    if (state.activeTab === 'game') renderGameTab();
-    if (state.activeTab === 'week') renderWeekTab();
     if (state.activeTab === 'season') renderSeasonTab();
     if (state.activeTab === 'roster') renderRosterTab();
     if (state.activeTab === 'data') renderDataTab();
