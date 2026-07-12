@@ -288,6 +288,9 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
 .lb-table td.lb-pts-cell { font-weight: 800; }
 .lb-table .sorted { background: #f2f6fc; }
 .lb-table thead th.sorted { color: var(--primary); }
+.lb-table thead th.sortable { cursor: pointer; user-select: none; -webkit-user-select: none; }
+.lb-table thead th.sortable:hover { color: var(--primary); }
+.lb-table .sort-caret { font-size: 9px; }
 .lb-table tbody tr:last-child td { border-bottom: none; }
 .lb-table .lb-rank { display: inline-flex; }
 
@@ -892,12 +895,24 @@ function renderSeasonTab() {
         });
 
         const ppgw = p => p.weeks ? p.points / p.weeks : 0;
-        const sortBy = state.lbSort === 'ppgw' ? 'ppgw' : 'points';
+        // Sortable leaderboard columns. Every column falls back to the default
+        // tie-break chain: Points -> King Maker -> PPGW, then name.
+        const lbVal = {
+            points: p => p.points,
+            kings: p => p.kings || 0,
+            jokers: p => p.jokers || 0,
+            crossed: p => p.crossed || 0,
+            ppgw: p => p.ppgw
+        };
+        const sortBy = lbVal[state.lbSort] ? state.lbSort : 'points';
+        const tieChain = ['points', 'kings', 'ppgw'];
+        const sortKeys = [sortBy, ...tieChain.filter(k => k !== sortBy)];
         const leaderboard = Object.entries(stats)
             .map(([name, s]) => ({ name, ...s, ppgw: (s.weeks ? s.points / s.weeks : 0) }))
-            .sort((a, b) => sortBy === 'ppgw'
-                ? (b.ppgw - a.ppgw || b.points - a.points)
-                : (b.points - a.points || b.roundWins - a.roundWins));
+            .sort((a, b) => {
+                for (const k of sortKeys) { const d = lbVal[k](b) - lbVal[k](a); if (d) return d; }
+                return a.name.localeCompare(b.name);
+            });
 
         if (leaderboard.length) {
             const top = leaderboard[0];
@@ -905,28 +920,29 @@ function renderSeasonTab() {
                 '<div class="meta">' + round2(top.points) + ' pts \u00b7 ' + top.ppgw.toFixed(1) + ' per week \u00b7 ' + top.roundWins + ' round wins \u00b7 ' + top.weeks + ' weeks</div></div>';
 
             const view = state.lbView === 'weekly' ? 'weekly' : 'ranking';
-            const th = (label, key) => '<th class="' + (sortBy === key ? 'sorted' : '') + '">' + label + '</th>';
+            // Clickable, sortable header cell. Active column shows a caret.
+            const caret = ' <span class="sort-caret">▾</span>';
+            const th = (label, key, title) => '<th class="sortable ' + (sortBy === key ? 'sorted' : '') + '"' +
+                (title ? ' title="' + title + '"' : '') + ' onclick="setLbSort(\'' + key + '\')">' +
+                label + (sortBy === key ? caret : '') + '</th>';
 
             // Ranking table
             const rankingHtml =
-                '<div class="lb-sort">Sort by:' +
-                '<button class="' + (sortBy === 'points' ? 'on' : '') + '" onclick="setLbSort(\'points\')">Points</button>' +
-                '<button class="' + (sortBy === 'ppgw' ? 'on' : '') + '" onclick="setLbSort(\'ppgw\')">Per week</button>' +
-                '</div>' +
+                '<div class="lb-sort">Tap a column heading to sort.</div>' +
                 '<div class="lb-table-wrap"><table class="lb-table"><thead><tr>' +
                 '<th>#</th><th class="col-name">Player</th>' +
-                '<th title="King Maker">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + '</th>' +
-                '<th title="Jokers received">' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + '</th>' +
-                '<th title="Jokers lifted">' + iconCrossed(true) + '</th>' +
+                th(ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king'), 'kings', 'King Maker') +
+                th(ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker'), 'jokers', 'Jokers received') +
+                th(iconCrossed(true), 'crossed', 'Jokers lifted') +
                 th('PPGW', 'ppgw') + th('Pts', 'points') +
                 '</tr></thead><tbody>' +
                 leaderboard.map((p, i) =>
                     '<tr>' +
                     '<td><span class="lb-rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '') + '">' + (i + 1) + '</span></td>' +
                     '<td class="col-name">' + esc(p.name) + guestTag(p.name) + '<div class="lb-sub">' + p.roundWins + ' round wins \u00b7 ' + p.weeks + ' weeks</div></td>' +
-                    '<td>' + (p.kings || 0) + '</td>' +
-                    '<td>' + (p.jokers || 0) + '</td>' +
-                    '<td>' + (p.crossed || 0) + '</td>' +
+                    '<td class="' + (sortBy === 'kings' ? 'sorted' : '') + '">' + (p.kings || 0) + '</td>' +
+                    '<td class="' + (sortBy === 'jokers' ? 'sorted' : '') + '">' + (p.jokers || 0) + '</td>' +
+                    '<td class="' + (sortBy === 'crossed' ? 'sorted' : '') + '">' + (p.crossed || 0) + '</td>' +
                     '<td class="' + (sortBy === 'ppgw' ? 'sorted' : '') + '">' + p.ppgw.toFixed(1) + '</td>' +
                     '<td class="lb-pts-cell ' + (sortBy === 'points' ? 'sorted' : '') + '" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(p.points) + '</td>' +
                     '</tr>').join('') +
