@@ -567,6 +567,20 @@ function setPastTeam(name, team) {
     state.past.team[name] = (state.past.team[name] === team) ? null : team;
     renderSeasonTab();
 }
+// Randomly split everyone currently picked (assigned to either team) into two
+// balanced teams. A player is "in today's game" once they have T1 or T2 set.
+function randomTeams() {
+    const playing = state.data.roster.filter(p => state.past.team[p] === 'team1' || state.past.team[p] === 'team2');
+    if (playing.length < 2) { toast('Tap T1 or T2 to pick who played, then Shuffle'); return; }
+    for (let i = playing.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [playing[i], playing[j]] = [playing[j], playing[i]];
+    }
+    const half = Math.ceil(playing.length / 2);
+    playing.forEach((p, idx) => { state.past.team[p] = idx < half ? 'team1' : 'team2'; });
+    renderSeasonTab();
+    toast('Teams shuffled: ' + half + ' vs ' + (playing.length - half));
+}
 function setPastPoints(name, v) { state.past.points[name] = v; }
 function setPastScore(which, v) { state.past['score' + which] = v; }
 
@@ -850,7 +864,8 @@ function pastFormHtml() {
         '<div><label>Team 2 score</label><input type="number" step="any" value="' + esc(state.past.score2) + '" oninput="setPastScore(2, this.value)"></div>' +
         '</div>' +
         '<label style="margin-top:14px;">Who played &amp; on which team?</label>' +
-        '<div class="hint" style="margin-bottom:10px;">Tap T1 or T2 for each player. The points box is optional &mdash; leave it blank to use the team score, or type a number to override just that player.</div>' +
+        '<div class="hint" style="margin-bottom:10px;">Tap T1 or T2 to pick who played (either side) &mdash; then hit <strong>Shuffle</strong> to split them into two random teams, or set the teams by hand. The points box is optional: leave it blank to use the team score, or type a number to override just that player.</div>' +
+        '<button class="btn subtle" style="margin-bottom:10px;" onclick="randomTeams()">&#127922; Shuffle into random teams</button>' +
         rows +
         koEditorHtml('past', pT1, pT2) +
         '<button class="btn green" style="margin-top:14px;" onclick="savePastDay()">Save game day</button>' +
