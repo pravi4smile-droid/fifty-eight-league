@@ -366,7 +366,7 @@ let state = {
     lbView: 'ranking',
     showPast: false,
     past: { date: '', team: {}, score1: '', score2: '', points: {}, ko: [] },
-    shuffle: { picked: {}, team1: [], team2: [], done: false },
+    shuffle: { picked: {}, team1: [], team2: [], done: false, tol: 0.2 },
     editWeek: null,
     editBuf: null
 };
@@ -591,28 +591,41 @@ function toggleShufflePick(name) {
     renderTeamsTab();
 }
 function shuffleClearPicks() {
-    state.shuffle = { picked: {}, team1: [], team2: [], done: false };
+    state.shuffle = { picked: {}, team1: [], team2: [], done: false, tol: state.shuffle.tol || 0.2 };
     renderTeamsTab();
 }
-// Greedy point-balanced split with randomised tie-breaks. Sorting strongest
-// first and always feeding the lighter team keeps the top players apart while
-// the random tie-breaks give a fresh split each time you shuffle.
+function setShuffleTol(pct) { state.shuffle.tol = pct; renderTeamsTab(); }
+// Point-aware split with a relaxation band: while the two teams stay within
+// `tol` of each other (as a share of the total points in play) the side is
+// picked at random, so most shuffles are genuinely random. Only once a pick
+// would push the gap past the tolerance do we force the player onto the
+// lighter team to pull things back. A looser tolerance = more random.
 function shuffleMakeTeams() {
     const picked = state.data.roster.filter(p => state.shuffle.picked[p]);
     if (picked.length < 2) { toast('Pick at least two players first'); return; }
     const pts = seasonPointsByPlayer();
+    const tol = state.shuffle.tol || 0.2;
     const rated = picked.map(p => ({ name: p, r: pts[p] || 0 }))
         .sort((a, b) => (b.r - a.r) || (Math.random() - 0.5));
+    const grandTotal = rated.reduce((s, x) => s + x.r, 0);
+    const allowed = tol * (grandTotal || 1); // max point gap we tolerate
     const half = Math.ceil(rated.length / 2);
     const t1 = [], t2 = [];
     let sum1 = 0, sum2 = 0;
     rated.forEach(x => {
+        const room1 = t1.length < half, room2 = t2.length < half;
         let toOne;
-        if (t1.length >= half) toOne = false;
-        else if (t2.length >= half) toOne = true;
-        else if (sum1 < sum2) toOne = true;
-        else if (sum2 < sum1) toOne = false;
-        else toOne = Math.random() < 0.5;
+        if (!room2) toOne = true;
+        else if (!room1) toOne = false;
+        else {
+            const diffIf1 = Math.abs((sum1 + x.r) - sum2);
+            const diffIf2 = Math.abs(sum1 - (sum2 + x.r));
+            const ok1 = diffIf1 <= allowed, ok2 = diffIf2 <= allowed;
+            if (ok1 && ok2) toOne = Math.random() < 0.5; // both within band -> random
+            else if (ok1) toOne = true;
+            else if (ok2) toOne = false;
+            else toOne = diffIf1 <= diffIf2;             // both over -> least lopsided
+        }
         if (toOne) { t1.push(x.name); sum1 += x.r; } else { t2.push(x.name); sum2 += x.r; }
     });
     state.shuffle.team1 = t1;
@@ -864,9 +877,18 @@ function renderTeamsTab() {
             '</div>';
     }).join('') + '</div>';
 
+    const curTol = state.shuffle.tol || 0.2;
+    const tolOpts = [{ v: 0.1, l: 'Tight 10%' }, { v: 0.2, l: 'Balanced 20%' }, { v: 0.35, l: 'Loose 35%' }];
+    const tolBtns = '<div style="display:flex;gap:8px;flex-wrap:wrap;margin:4px 0 4px;">' +
+        tolOpts.map(t => '<button class="mini-toggle' + (Math.abs(curTol - t.v) < 1e-9 ? ' on' : '') +
+            '" onclick="setShuffleTol(' + t.v + ')">' + t.l + '</button>').join('') + '</div>';
+
     let html = '<div class="card"><h3>&#127922; Make random teams</h3>' +
-        '<div class="hint" style="margin-bottom:12px;">Step 1 &mdash; tap <strong>Pick</strong> for everyone playing today. Step 2 &mdash; hit <strong>Shuffle &amp; make teams</strong>. Teams are balanced by season points so the top players don\'t all land on the same side.</div>' +
-        '<div class="meta" style="margin-bottom:10px;">' + pickedCount + ' picked</div>' +
+        '<div class="hint" style="margin-bottom:12px;">Step 1 &mdash; tap <strong>Pick</strong> for everyone playing today. Step 2 &mdash; hit <strong>Shuffle &amp; make teams</strong>. Picks are random, but kept within the balance tolerance below so the top players don\'t all land on the same side.</div>' +
+        '<label>Balance tolerance</label>' +
+        '<div class="hint" style="margin-bottom:4px;">How far apart the teams\' season points may drift. Looser = more random, tighter = more even.</div>' +
+        tolBtns +
+        '<div class="meta" style="margin:10px 0;">' + pickedCount + ' picked</div>' +
         pickList +
         '<button class="btn green" style="margin-top:14px;" onclick="shuffleMakeTeams()">&#127922; Shuffle &amp; make teams</button>' +
         (pickedCount ? '<button class="btn subtle" style="margin-top:8px;" onclick="shuffleClearPicks()">Clear picks</button>' : '') +
