@@ -1098,6 +1098,125 @@ function bumpChartHtml(season, leaderboard) {
         (names.length > 8 ? '; players outside the top 8 are shown in grey' : '') + '.</div>';
 }
 
+// Cumulative badge tallies after each week, and the Net they imply.
+function netByWeek(season, names) {
+    const k = {}, j = {}, c = {}, seen = {}; names.forEach(n => { k[n] = 0; j[n] = 0; c[n] = 0; });
+    return season.map(w => {
+        weekPlayers(w).forEach(p => { if (k[p] !== undefined) seen[p] = true; });
+        const t1 = (w.players && w.players.team1) || [], t2 = (w.players && w.players.team2) || [];
+        (w.koRounds || []).forEach(r => {
+            const kings = r.winner === 'team1' ? t1 : t2;
+            const losers = r.winner === 'team1' ? t2 : t1;
+            kings.forEach(p => { if (k[p] !== undefined) k[p]++; });
+            losers.forEach(p => { if (j[p] !== undefined) j[p]++; });
+            (r.crossed || []).forEach(p => { if (c[p] !== undefined) c[p]++; });
+        });
+        const net = {}; names.forEach(n => { net[n] = k[n] - (j[n] - c[n]); });
+        return { net: net, k: Object.assign({}, k), j: Object.assign({}, j), c: Object.assign({}, c), seen: Object.assign({}, seen) };
+    });
+}
+function niceIntStep(range, count) {
+    const raw = Math.max(range, 1) / count, mag = Math.pow(10, Math.floor(Math.log10(raw))), n = raw / mag;
+    const s = n < 1.5 ? 1 : n < 3 ? 2 : n < 7 ? 5 : 10;
+    return Math.max(1, Math.round(s * mag));
+}
+function netChartHtml(season, leaderboard) {
+    const names = leaderboard.map(p => p.name);
+    if (season.length < 1 || names.length < 2) {
+        return '<div class="hint" style="margin-top:8px;">Need at least two players and one recorded week to chart Net.</div>';
+    }
+    const series = netByWeek(season, names);
+    let minV = 0, maxV = 0;
+    series.forEach(wk => names.forEach(n => { if (wk.seen[n]) { minV = Math.min(minV, wk.net[n]); maxV = Math.max(maxV, wk.net[n]); } }));
+    if (minV === 0 && maxV === 0) {
+        return '<div class="hint" style="margin-top:8px;">No King Maker / Joker rounds recorded yet &mdash; the Net trend appears once you log some 12-0 rounds.</div>';
+    }
+    const PAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
+    const colored = idx => idx < PAL.length;
+    const colorFor = idx => colored(idx) ? PAL[idx] : '#c2c6cc';
+    const hl = state.lbHighlight;
+
+    const step = niceIntStep(Math.max(0, maxV) - Math.min(0, minV), 4);
+    let hi = Math.ceil(Math.max(0, maxV) / step) * step, lo = Math.floor(Math.min(0, minV) / step) * step;
+    if (hi === lo) { hi += step; lo -= step; }
+
+    const topM = 26, plotH = Math.max(150, Math.min(260, ((hi - lo) / step) * 40)), botM = 40, leftM = 38;
+    const maxNameLen = names.reduce((m, n) => Math.max(m, n.length), 0);
+    const rightM = Math.min(200, Math.max(96, maxNameLen * 7.0 + 58));
+    const xStep = Math.max(64, Math.min(122, season.length > 1 ? 430 / (season.length - 1) : 430));
+    const X = wi => leftM + wi * xStep;
+    const Y = v => topM + (hi - v) / (hi - lo) * plotH;
+    const W = Math.round(leftM + (season.length - 1) * xStep + rightM);
+    const H = topM + plotH + botM;
+    const plotX0 = leftM - 12, plotX1 = X(season.length - 1) + 12;
+    const y0 = Y(0);
+
+    let svg = '<svg class="bump-svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Net by week">';
+    svg += '<defs><filter id="netSh" x="-20%" y="-25%" width="140%" height="150%">' +
+        '<feDropShadow dx="0" dy="1.2" stdDeviation="1.4" flood-color="#0b1220" flood-opacity="0.22"/></filter></defs>';
+    // Plot surface + positive(green)/negative(red) bands around the zero line.
+    svg += '<rect class="bump-plot" x="' + plotX0 + '" y="' + (topM - 6) + '" width="' + (plotX1 - plotX0) + '" height="' + (plotH + 12) + '" rx="12"/>';
+    svg += '<rect x="' + plotX0 + '" y="' + Y(hi) + '" width="' + (plotX1 - plotX0) + '" height="' + Math.max(0, y0 - Y(hi)) + '" fill="#27ae60" opacity="0.06"/>';
+    svg += '<rect x="' + plotX0 + '" y="' + y0 + '" width="' + (plotX1 - plotX0) + '" height="' + Math.max(0, Y(lo) - y0) + '" fill="#e74c3c" opacity="0.06"/>';
+    // Value gridlines + labels (zero line drawn bold).
+    for (let v = lo; v <= hi; v += step) {
+        const y = Y(v);
+        if (v === 0) svg += '<line x1="' + plotX0 + '" y1="' + y + '" x2="' + plotX1 + '" y2="' + y + '" stroke="var(--muted)" stroke-width="1.4"/>';
+        else svg += '<line class="bump-grid" x1="' + plotX0 + '" y1="' + y + '" x2="' + plotX1 + '" y2="' + y + '"/>';
+        svg += '<text class="bump-rank" x="' + (leftM - 12) + '" y="' + (y + 4) + '" text-anchor="end">' + (v > 0 ? '+' + v : v) + '</text>';
+    }
+    season.forEach((w, wi) => {
+        const x = X(wi);
+        svg += '<line class="bump-vgrid" x1="' + x + '" y1="' + (topM - 6) + '" x2="' + x + '" y2="' + (topM + plotH + 6) + '"/>';
+        svg += '<text class="bump-wk" x="' + x + '" y="' + (H - 20) + '" text-anchor="middle">W' + w.week + '</text>';
+        const md = (w.date || '').slice(5).replace('-', '/');
+        if (md) svg += '<text class="bump-date" x="' + x + '" y="' + (H - 7) + '" text-anchor="middle">' + md + '</text>';
+    });
+
+    const order = leaderboard.map((p, idx) => ({ p: p, idx: idx })).sort((a, b) => (hl === a.p.name ? 1 : 0) - (hl === b.p.name ? 1 : 0));
+    order.forEach(({ p, idx }) => {
+        const pts = [];
+        series.forEach((wk, wi) => {
+            if (wk.seen[p.name]) pts.push({ x: X(wi), y: Y(wk.net[p.name]), v: wk.net[p.name], wi: wi, k: wk.k[p.name], j: wk.j[p.name], c: wk.c[p.name] });
+        });
+        if (!pts.length) return;
+        const col = colorFor(idx);
+        const isHl = hl === p.name;
+        const dim = hl && !isHl;
+        const op = dim ? 0.14 : 1;
+        const sw = isHl ? 4 : (colored(idx) ? 2.6 : 1.8);
+        const arg = "'" + esc(p.name).replace(/'/g, "\\'") + "'";
+        if (pts.length > 1) {
+            svg += '<path class="bump-path" d="' + smoothPath(pts, topM - 4, topM + plotH + 4) + '" stroke="' + col +
+                '" stroke-width="' + sw + '" opacity="' + op + '"' + (isHl ? ' filter="url(#netSh)"' : '') +
+                ' onclick="toggleChartHighlight(' + arg + ')"/>';
+        }
+        pts.forEach((pt, kk) => {
+            const isEdge = kk === 0 || kk === pts.length - 1;
+            const rr = isHl ? 5.5 : (isEdge ? 4.4 : 3.4);
+            const sv = pt.v > 0 ? '+' + pt.v : pt.v;
+            svg += '<circle class="bump-dot" cx="' + pt.x + '" cy="' + pt.y + '" r="' + rr +
+                '" fill="' + col + '" stroke="var(--card)" stroke-width="1.6" opacity="' + op + '" onclick="toggleChartHighlight(' + arg + ')">' +
+                '<title>' + esc(p.name) + ' · W' + season[pt.wi].week + ' · King Maker ' + pt.k + ', Jokers ' + pt.j + ', lifted ' + pt.c + ' → Net ' + sv + '</title></circle>';
+        });
+        const last = pts[pts.length - 1];
+        const sv = last.v > 0 ? '+' + last.v : String(last.v);
+        const tag = p.name + '  ' + sv;
+        const pillW = Math.round(tag.length * 6.6 + 16), pillH = 20, px = last.x + 11, py = last.y - pillH / 2;
+        const pillFill = colored(idx) ? col : '#6b7280';
+        svg += '<g opacity="' + (dim ? 0.3 : 1) + '" onclick="toggleChartHighlight(' + arg + ')" style="cursor:pointer">' +
+            '<rect x="' + px + '" y="' + py + '" width="' + pillW + '" height="' + pillH + '" rx="10" fill="' + pillFill + '"' +
+            (isHl ? ' filter="url(#netSh)"' : '') + '/>' +
+            '<text class="bump-pill-txt" x="' + (px + pillW / 2) + '" y="' + (last.y + 4) + '" text-anchor="middle">' + esc(tag) + '</text></g>';
+    });
+    svg += '</svg>';
+
+    return '<div class="lb-sort">Above the zero line = net positive (more King Maker); below = net negative. Tap a player to spotlight.</div>' +
+        '<div class="chart-wrap">' + svg + '</div>' +
+        '<div class="hint">Running <strong>Net = King Maker &minus; (Jokers &minus; lifted)</strong> after each week. Tap a dot for that week\'s badge breakdown' +
+        (names.length > 8 ? '; players outside the top 8 are shown in grey' : '') + '.</div>';
+}
+
 function pastFormHtml() {
     if (!state.showPast) {
         return '<div class="card"><button class="btn subtle" onclick="togglePastForm()">&#128197; Add a game day</button>' +
@@ -1208,7 +1327,7 @@ function renderSeasonTab() {
             html += '<div class="winner-banner"><div class="wt">Season leader</div><div class="wn">&#127942; ' + esc(top.name) + '</div>' +
                 '<div class="meta">' + round2(top.points) + ' pts \u00b7 ' + top.ppgw.toFixed(1) + ' per week \u00b7 ' + top.roundWins + ' round wins \u00b7 ' + top.weeks + ' weeks</div></div>';
 
-            const view = ['weekly', 'chart'].includes(state.lbView) ? state.lbView : 'ranking';
+            const view = ['weekly', 'chart', 'net'].includes(state.lbView) ? state.lbView : 'ranking';
             // Clickable, sortable header cell. Active column shows a caret.
             const caret = ' <span class="sort-caret">▾</span>';
             const th = (label, key, title) => '<th class="sortable ' + (sortBy === key ? 'sorted' : '') + '"' +
@@ -1269,8 +1388,10 @@ function renderSeasonTab() {
                 '<button class="' + (view === 'ranking' ? 'on' : '') + '" onclick="setLbView(\'ranking\')">Ranking</button>' +
                 '<button class="' + (view === 'weekly' ? 'on' : '') + '" onclick="setLbView(\'weekly\')">Weekly breakdown</button>' +
                 '<button class="' + (view === 'chart' ? 'on' : '') + '" onclick="setLbView(\'chart\')">&#128200; Position chart</button>' +
+                '<button class="' + (view === 'net' ? 'on' : '') + '" onclick="setLbView(\'net\')">&#128202; Net trend</button>' +
                 '</div>' +
-                (view === 'ranking' ? rankingHtml : view === 'weekly' ? weeklyHtml : bumpChartHtml(season, leaderboard)) +
+                (view === 'ranking' ? rankingHtml : view === 'weekly' ? weeklyHtml :
+                    view === 'chart' ? bumpChartHtml(season, leaderboard) : netChartHtml(season, leaderboard)) +
                 '</div>';
         }
 
