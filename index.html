@@ -279,6 +279,14 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
 .wk-table th, .wk-table td { min-width: 46px; }
 .wk-bonus { color: var(--accent); font-weight: 700; font-size: 11px; margin-left: 1px; }
 .wk-empty { color: var(--muted); }
+/* Position (bump) chart */
+.chart-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 4px 0 2px; }
+.bump-svg { display: block; }
+.bump-line { fill: none; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; }
+.bump-grid { stroke: var(--border); }
+.bump-axis { fill: var(--muted); font-size: 10px; font-family: inherit; }
+.bump-label { font-family: inherit; font-weight: 700; font-size: 11px; cursor: pointer; }
+.bump-dot { cursor: pointer; }
 .lb-table-wrap { overflow-x: auto; }
 .lb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .lb-table th, .lb-table td { padding: 8px 5px; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -364,6 +372,7 @@ let state = {
     newPlayerName: '',
     lbSort: 'points',
     lbView: 'ranking',
+    lbHighlight: null,
     showPast: false,
     past: { date: '', team: {}, score1: '', score2: '', points: {}, ko: [] },
     shuffle: { picked: {}, team1: [], team2: [], done: false, tol: 0.2 },
@@ -950,6 +959,90 @@ function weekPlayers(week) {
     return Array.from(set);
 }
 
+/* ---------- Position chart (bump chart of rank over weeks) ---------- */
+function toggleChartHighlight(name) {
+    state.lbHighlight = state.lbHighlight === name ? null : name;
+    renderSeasonTab();
+}
+// Standing after each week: cumulative points so far, ranked 1..k among the
+// players who have appeared by then.
+function rankByWeek(season, names) {
+    const cum = {}; names.forEach(n => { cum[n] = 0; });
+    const seen = {};
+    return season.map(w => {
+        weekPlayers(w).forEach(p => { if (cum[p] !== undefined) seen[p] = true; });
+        if (w.finalTally) Object.entries(w.finalTally).forEach(([p, v]) => { if (cum[p] !== undefined) cum[p] += Number(v) || 0; });
+        const active = names.filter(n => seen[n]).sort((a, b) => (cum[b] - cum[a]) || a.localeCompare(b));
+        const ranks = {}; active.forEach((n, i) => { ranks[n] = i + 1; });
+        return { ranks: ranks, points: Object.assign({}, cum) };
+    });
+}
+function bumpChartHtml(season, leaderboard) {
+    const names = leaderboard.map(p => p.name);
+    if (season.length < 1 || names.length < 2) {
+        return '<div class="hint" style="margin-top:8px;">Need at least two players and one recorded week to chart positions.</div>';
+    }
+    const series = rankByWeek(season, names);
+    const maxRank = names.length;
+    // Validated categorical slots (dataviz palette); players past the 8th recede
+    // to a muted "other" gray so the leaders stay legible.
+    const PAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
+    const colored = idx => idx < PAL.length;
+    const colorFor = idx => colored(idx) ? PAL[idx] : '#c2c6cc';
+    const hl = state.lbHighlight;
+
+    const rowH = 30, topM = 22, botM = 28, leftM = 26, rightM = 118;
+    const xStep = Math.max(62, Math.min(120, season.length > 1 ? 420 / (season.length - 1) : 420));
+    const X = wi => leftM + wi * xStep;
+    const Y = rank => topM + (rank - 1) * rowH;
+    const W = Math.round(leftM + (season.length - 1) * xStep + rightM);
+    const H = topM + (maxRank - 1) * rowH + botM;
+
+    let svg = '<svg class="bump-svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Player rank by week">';
+    for (let r = 1; r <= maxRank; r++) {
+        const y = Y(r);
+        svg += '<line class="bump-grid" x1="' + leftM + '" y1="' + y + '" x2="' + (W - rightM + 22) + '" y2="' + y + '"/>';
+        svg += '<text class="bump-axis" x="' + (leftM - 8) + '" y="' + (y + 3) + '" text-anchor="end">' + r + '</text>';
+    }
+    season.forEach((w, wi) => {
+        svg += '<text class="bump-axis" x="' + X(wi) + '" y="' + (H - 8) + '" text-anchor="middle">W' + w.week + '</text>';
+    });
+
+    leaderboard.forEach((p, idx) => {
+        const pts = [];
+        series.forEach((wk, wi) => {
+            const r = wk.ranks[p.name];
+            if (r) pts.push({ x: X(wi), y: Y(r), r: r, wi: wi, cp: wk.points[p.name] });
+        });
+        if (!pts.length) return;
+        const col = colorFor(idx);
+        const isHl = hl === p.name;
+        const dim = hl && !isHl;
+        const op = dim ? 0.12 : 1;
+        const sw = isHl ? 3.6 : (colored(idx) ? 2.4 : 1.6);
+        const arg = "'" + esc(p.name).replace(/'/g, "\\'") + "'";
+        if (pts.length > 1) {
+            svg += '<polyline class="bump-line" points="' + pts.map(pt => pt.x + ',' + pt.y).join(' ') +
+                '" stroke="' + col + '" stroke-width="' + sw + '" opacity="' + op + '" onclick="toggleChartHighlight(' + arg + ')"/>';
+        }
+        pts.forEach(pt => {
+            svg += '<circle class="bump-dot" cx="' + pt.x + '" cy="' + pt.y + '" r="' + (isHl ? 5 : 4) +
+                '" fill="' + col + '" stroke="var(--card)" stroke-width="1.5" opacity="' + op + '" onclick="toggleChartHighlight(' + arg + ')">' +
+                '<title>' + esc(p.name) + ' · W' + season[pt.wi].week + ' · rank ' + pt.r + ' · ' + round2(pt.cp) + ' pts</title></circle>';
+        });
+        const last = pts[pts.length - 1];
+        const labelFill = dim ? 'var(--muted)' : (colored(idx) ? col : 'var(--text)');
+        svg += '<text class="bump-label" x="' + (last.x + 9) + '" y="' + (last.y + 4) + '" fill="' + labelFill +
+            '" opacity="' + (dim ? 0.4 : 1) + '" onclick="toggleChartHighlight(' + arg + ')">' + esc(p.name) + '</text>';
+    });
+    svg += '</svg>';
+
+    return '<div class="lb-sort">Lower line = higher rank. Tap a player to highlight; tap again to reset.</div>' +
+        '<div class="chart-wrap">' + svg + '</div>' +
+        '<div class="hint">Standing after each week by total points so far. A line begins the week a player first plays' +
+        (names.length > 8 ? '; players outside the top 8 are shown in grey' : '') + '.</div>';
+}
+
 function pastFormHtml() {
     if (!state.showPast) {
         return '<div class="card"><button class="btn subtle" onclick="togglePastForm()">&#128197; Add a game day</button>' +
@@ -1060,7 +1153,7 @@ function renderSeasonTab() {
             html += '<div class="winner-banner"><div class="wt">Season leader</div><div class="wn">&#127942; ' + esc(top.name) + '</div>' +
                 '<div class="meta">' + round2(top.points) + ' pts \u00b7 ' + top.ppgw.toFixed(1) + ' per week \u00b7 ' + top.roundWins + ' round wins \u00b7 ' + top.weeks + ' weeks</div></div>';
 
-            const view = state.lbView === 'weekly' ? 'weekly' : 'ranking';
+            const view = ['weekly', 'chart'].includes(state.lbView) ? state.lbView : 'ranking';
             // Clickable, sortable header cell. Active column shows a caret.
             const caret = ' <span class="sort-caret">▾</span>';
             const th = (label, key, title) => '<th class="sortable ' + (sortBy === key ? 'sorted' : '') + '"' +
@@ -1120,8 +1213,9 @@ function renderSeasonTab() {
                 '<div class="lb-view">' +
                 '<button class="' + (view === 'ranking' ? 'on' : '') + '" onclick="setLbView(\'ranking\')">Ranking</button>' +
                 '<button class="' + (view === 'weekly' ? 'on' : '') + '" onclick="setLbView(\'weekly\')">Weekly breakdown</button>' +
+                '<button class="' + (view === 'chart' ? 'on' : '') + '" onclick="setLbView(\'chart\')">&#128200; Position chart</button>' +
                 '</div>' +
-                (view === 'ranking' ? rankingHtml : weeklyHtml) +
+                (view === 'ranking' ? rankingHtml : view === 'weekly' ? weeklyHtml : bumpChartHtml(season, leaderboard)) +
                 '</div>';
         }
 
