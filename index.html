@@ -280,13 +280,20 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
 .wk-bonus { color: var(--accent); font-weight: 700; font-size: 11px; margin-left: 1px; }
 .wk-empty { color: var(--muted); }
 /* Position (bump) chart */
-.chart-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 4px 0 2px; }
+.chart-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 6px 0 2px; border-radius: 14px; }
 .bump-svg { display: block; }
-.bump-line { fill: none; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; }
-.bump-grid { stroke: var(--border); }
+.bump-plot { fill: #f7f9fc; }
+.bump-stripe { fill: #0b1220; }
+.bump-lead { fill: #f4b400; }
+.bump-path { fill: none; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; transition: opacity .18s ease, stroke-width .18s ease; }
+.bump-grid { stroke: var(--border); stroke-dasharray: 2 4; }
+.bump-vgrid { stroke: var(--border); stroke-dasharray: 2 5; }
 .bump-axis { fill: var(--muted); font-size: 10px; font-family: inherit; }
-.bump-label { font-family: inherit; font-weight: 700; font-size: 11px; cursor: pointer; }
-.bump-dot { cursor: pointer; }
+.bump-wk { fill: var(--text); font-size: 11px; font-weight: 700; font-family: inherit; }
+.bump-date { fill: var(--muted); font-size: 9px; font-family: inherit; }
+.bump-rank { fill: var(--muted); font-size: 11px; font-weight: 700; font-family: inherit; }
+.bump-pill-txt { font-family: inherit; font-weight: 700; font-size: 11px; fill: #fff; cursor: pointer; }
+.bump-dot { cursor: pointer; transition: opacity .18s ease; }
 .lb-table-wrap { overflow-x: auto; }
 .lb-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 .lb-table th, .lb-table td { padding: 8px 5px; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
@@ -977,6 +984,22 @@ function rankByWeek(season, names) {
         return { ranks: ranks, points: Object.assign({}, cum) };
     });
 }
+// Catmull-Rom spline through every rank node, emitted as cubic beziers so the
+// line stays smooth but still passes exactly through each week's rank.
+function smoothPath(p, clampLo, clampHi) {
+    if (p.length === 1) return '';
+    if (p.length === 2) return 'M' + p[0].x + ' ' + p[0].y + ' L' + p[1].x + ' ' + p[1].y;
+    const t = 0.82, r1 = v => Math.round(v * 10) / 10;
+    const cy = v => Math.max(clampLo, Math.min(clampHi, v));
+    let d = 'M' + p[0].x + ' ' + p[0].y;
+    for (let i = 0; i < p.length - 1; i++) {
+        const p0 = p[i - 1] || p[i], p1 = p[i], p2 = p[i + 1], p3 = p[i + 2] || p2;
+        const c1x = p1.x + (p2.x - p0.x) / 6 * t, c1y = cy(p1.y + (p2.y - p0.y) / 6 * t);
+        const c2x = p2.x - (p3.x - p1.x) / 6 * t, c2y = cy(p2.y - (p3.y - p1.y) / 6 * t);
+        d += ' C' + r1(c1x) + ' ' + r1(c1y) + ' ' + r1(c2x) + ' ' + r1(c2y) + ' ' + p2.x + ' ' + p2.y;
+    }
+    return d;
+}
 function bumpChartHtml(season, leaderboard) {
     const names = leaderboard.map(p => p.name);
     if (season.length < 1 || names.length < 2) {
@@ -989,26 +1012,47 @@ function bumpChartHtml(season, leaderboard) {
     const PAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
     const colored = idx => idx < PAL.length;
     const colorFor = idx => colored(idx) ? PAL[idx] : '#c2c6cc';
+    const medal = ['🥇', '🥈', '🥉'];
     const hl = state.lbHighlight;
 
-    const rowH = 30, topM = 22, botM = 28, leftM = 26, rightM = 118;
-    const xStep = Math.max(62, Math.min(120, season.length > 1 ? 420 / (season.length - 1) : 420));
+    const rowH = 34, topM = 30, botM = 40, leftM = 32;
+    const maxNameLen = names.reduce((m, n) => Math.max(m, n.length), 0);
+    const rightM = Math.min(190, Math.max(90, maxNameLen * 7.0 + 46));
+    const xStep = Math.max(64, Math.min(122, season.length > 1 ? 430 / (season.length - 1) : 430));
     const X = wi => leftM + wi * xStep;
     const Y = rank => topM + (rank - 1) * rowH;
     const W = Math.round(leftM + (season.length - 1) * xStep + rightM);
     const H = topM + (maxRank - 1) * rowH + botM;
+    const plotX0 = leftM - 12, plotX1 = X(season.length - 1) + 12;
+    const plotY0 = topM - 15, plotY1 = Y(maxRank) + 15;
+    const clampLo = topM - rowH * 0.4, clampHi = Y(maxRank) + rowH * 0.4;
 
     let svg = '<svg class="bump-svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Player rank by week">';
+    svg += '<defs><filter id="bumpSh" x="-20%" y="-25%" width="140%" height="150%">' +
+        '<feDropShadow dx="0" dy="1.2" stdDeviation="1.4" flood-color="#0b1220" flood-opacity="0.22"/></filter></defs>';
+
+    // Plot surface + alternating row stripes, with the leader row tinted gold.
+    svg += '<rect class="bump-plot" x="' + plotX0 + '" y="' + plotY0 + '" width="' + (plotX1 - plotX0) +
+        '" height="' + (plotY1 - plotY0) + '" rx="12"/>';
     for (let r = 1; r <= maxRank; r++) {
         const y = Y(r);
-        svg += '<line class="bump-grid" x1="' + leftM + '" y1="' + y + '" x2="' + (W - rightM + 22) + '" y2="' + y + '"/>';
-        svg += '<text class="bump-axis" x="' + (leftM - 8) + '" y="' + (y + 3) + '" text-anchor="end">' + r + '</text>';
+        if (r === 1) svg += '<rect class="bump-lead" x="' + plotX0 + '" y="' + (y - rowH / 2) + '" width="' + (plotX1 - plotX0) + '" height="' + rowH + '" opacity="0.10"/>';
+        else if (r % 2 === 0) svg += '<rect class="bump-stripe" x="' + plotX0 + '" y="' + (y - rowH / 2) + '" width="' + (plotX1 - plotX0) + '" height="' + rowH + '" opacity="0.03"/>';
+        svg += '<line class="bump-grid" x1="' + plotX0 + '" y1="' + y + '" x2="' + plotX1 + '" y2="' + y + '"/>';
+        svg += '<text class="bump-rank" x="' + (leftM - 12) + '" y="' + (y + 4) + '" text-anchor="end">' + r + '</text>';
     }
+    // Week columns: light vertical guides + week number and date.
     season.forEach((w, wi) => {
-        svg += '<text class="bump-axis" x="' + X(wi) + '" y="' + (H - 8) + '" text-anchor="middle">W' + w.week + '</text>';
+        const x = X(wi);
+        svg += '<line class="bump-vgrid" x1="' + x + '" y1="' + plotY0 + '" x2="' + x + '" y2="' + plotY1 + '"/>';
+        svg += '<text class="bump-wk" x="' + x + '" y="' + (H - 20) + '" text-anchor="middle">W' + w.week + '</text>';
+        const md = (w.date || '').slice(5).replace('-', '/');
+        if (md) svg += '<text class="bump-date" x="' + x + '" y="' + (H - 7) + '" text-anchor="middle">' + md + '</text>';
     });
 
-    leaderboard.forEach((p, idx) => {
+    // Draw non-highlighted first, highlighted last so it sits on top.
+    const order = leaderboard.map((p, idx) => ({ p: p, idx: idx })).sort((a, b) => (hl === a.p.name ? 1 : 0) - (hl === b.p.name ? 1 : 0));
+    order.forEach(({ p, idx }) => {
         const pts = [];
         series.forEach((wk, wi) => {
             const r = wk.ranks[p.name];
@@ -1018,26 +1062,37 @@ function bumpChartHtml(season, leaderboard) {
         const col = colorFor(idx);
         const isHl = hl === p.name;
         const dim = hl && !isHl;
-        const op = dim ? 0.12 : 1;
-        const sw = isHl ? 3.6 : (colored(idx) ? 2.4 : 1.6);
+        const op = dim ? 0.14 : 1;
+        const sw = isHl ? 4 : (colored(idx) ? 2.6 : 1.8);
         const arg = "'" + esc(p.name).replace(/'/g, "\\'") + "'";
+
         if (pts.length > 1) {
-            svg += '<polyline class="bump-line" points="' + pts.map(pt => pt.x + ',' + pt.y).join(' ') +
-                '" stroke="' + col + '" stroke-width="' + sw + '" opacity="' + op + '" onclick="toggleChartHighlight(' + arg + ')"/>';
+            svg += '<path class="bump-path" d="' + smoothPath(pts, clampLo, clampHi) + '" stroke="' + col +
+                '" stroke-width="' + sw + '" opacity="' + op + '"' + (isHl ? ' filter="url(#bumpSh)"' : '') +
+                ' onclick="toggleChartHighlight(' + arg + ')"/>';
         }
-        pts.forEach(pt => {
-            svg += '<circle class="bump-dot" cx="' + pt.x + '" cy="' + pt.y + '" r="' + (isHl ? 5 : 4) +
-                '" fill="' + col + '" stroke="var(--card)" stroke-width="1.5" opacity="' + op + '" onclick="toggleChartHighlight(' + arg + ')">' +
+        pts.forEach((pt, k) => {
+            const isEdge = k === 0 || k === pts.length - 1;
+            const rr = isHl ? 5.5 : (isEdge ? 4.4 : 3.4);
+            svg += '<circle class="bump-dot" cx="' + pt.x + '" cy="' + pt.y + '" r="' + rr +
+                '" fill="' + col + '" stroke="var(--card)" stroke-width="1.6" opacity="' + op + '" onclick="toggleChartHighlight(' + arg + ')">' +
                 '<title>' + esc(p.name) + ' · W' + season[pt.wi].week + ' · rank ' + pt.r + ' · ' + round2(pt.cp) + ' pts</title></circle>';
         });
+
+        // End label as a coloured pill (medal for the overall top three).
         const last = pts[pts.length - 1];
-        const labelFill = dim ? 'var(--muted)' : (colored(idx) ? col : 'var(--text)');
-        svg += '<text class="bump-label" x="' + (last.x + 9) + '" y="' + (last.y + 4) + '" fill="' + labelFill +
-            '" opacity="' + (dim ? 0.4 : 1) + '" onclick="toggleChartHighlight(' + arg + ')">' + esc(p.name) + '</text>';
+        const tag = (idx < 3 ? medal[idx] + ' ' : '') + p.name;
+        const pillW = Math.round(tag.length * 6.6 + (idx < 3 ? 20 : 16));
+        const pillH = 20, px = last.x + 11, py = last.y - pillH / 2;
+        const pillFill = colored(idx) ? col : '#6b7280';
+        svg += '<g opacity="' + (dim ? 0.3 : 1) + '" onclick="toggleChartHighlight(' + arg + ')" style="cursor:pointer">' +
+            '<rect x="' + px + '" y="' + py + '" width="' + pillW + '" height="' + pillH + '" rx="10" fill="' + pillFill + '"' +
+            (isHl ? ' filter="url(#bumpSh)"' : '') + '/>' +
+            '<text class="bump-pill-txt" x="' + (px + pillW / 2) + '" y="' + (last.y + 4) + '" text-anchor="middle">' + esc(tag) + '</text></g>';
     });
     svg += '</svg>';
 
-    return '<div class="lb-sort">Lower line = higher rank. Tap a player to highlight; tap again to reset.</div>' +
+    return '<div class="lb-sort">Lower line = higher rank. Tap a player to spotlight their run; tap again to reset.</div>' +
         '<div class="chart-wrap">' + svg + '</div>' +
         '<div class="hint">Standing after each week by total points so far. A line begins the week a player first plays' +
         (names.length > 8 ? '; players outside the top 8 are shown in grey' : '') + '.</div>';
