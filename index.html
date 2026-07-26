@@ -910,6 +910,8 @@ function renderSeasonTab() {
         });
 
         const ppgw = p => p.weeks ? p.points / p.weeks : 0;
+        // Net = King Maker - (Jokers received - Jokers lifted).
+        const netOf = p => (p.kings || 0) - ((p.jokers || 0) - (p.crossed || 0));
         // Sortable leaderboard columns. Every column falls back to the default
         // tie-break chain: Points -> King Maker -> PPGW, then name.
         const lbVal = {
@@ -917,6 +919,7 @@ function renderSeasonTab() {
             kings: p => p.kings || 0,
             jokers: p => p.jokers || 0,
             crossed: p => p.crossed || 0,
+            net: p => netOf(p),
             ppgw: p => p.ppgw
         };
         const sortBy = lbVal[state.lbSort] ? state.lbSort : 'points';
@@ -949,6 +952,7 @@ function renderSeasonTab() {
                 th(ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king'), 'kings', 'King Maker') +
                 th(ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker'), 'jokers', 'Jokers received') +
                 th(iconCrossed(true), 'crossed', 'Jokers lifted') +
+                th('Net', 'net', 'King Maker − (Jokers − lifted)') +
                 th('PPGW', 'ppgw') + th('Pts', 'points') +
                 '</tr></thead><tbody>' +
                 leaderboard.map((p, i) =>
@@ -958,6 +962,7 @@ function renderSeasonTab() {
                     '<td class="' + (sortBy === 'kings' ? 'sorted' : '') + '">' + (p.kings || 0) + '</td>' +
                     '<td class="' + (sortBy === 'jokers' ? 'sorted' : '') + '">' + (p.jokers || 0) + '</td>' +
                     '<td class="' + (sortBy === 'crossed' ? 'sorted' : '') + '">' + (p.crossed || 0) + '</td>' +
+                    '<td class="' + (sortBy === 'net' ? 'sorted' : '') + '" style="color:' + (netOf(p) >= 0 ? 'var(--green)' : 'var(--red)') + '">' + netOf(p) + '</td>' +
                     '<td class="' + (sortBy === 'ppgw' ? 'sorted' : '') + '">' + p.ppgw.toFixed(1) + '</td>' +
                     '<td class="lb-pts-cell ' + (sortBy === 'points' ? 'sorted' : '') + '" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(p.points) + '</td>' +
                     '</tr>').join('') +
