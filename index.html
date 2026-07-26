@@ -332,12 +332,14 @@ textarea { width: 100%; min-height: 140px; padding: 10px; border: 1px solid var(
         <span class="sync-status" id="sync-status">Connecting...</span>
     </div>
     <div id="tab-season"></div>
+    <div id="tab-teams" style="display:none;"></div>
     <div id="tab-roster" style="display:none;"></div>
     <div id="tab-data" style="display:none;"></div>
 </div>
 
 <div class="tabbar">
     <button class="active" data-tab="season" onclick="switchTab('season')"><span class="ico">&#127942;</span>Season</button>
+    <button data-tab="teams" onclick="switchTab('teams')"><span class="ico">&#127922;</span>Teams</button>
     <button data-tab="roster" onclick="switchTab('roster')"><span class="ico">&#128101;</span>Roster</button>
     <button data-tab="data" onclick="switchTab('data')"><span class="ico">&#128190;</span>Data</button>
 </div>
@@ -364,6 +366,7 @@ let state = {
     lbView: 'ranking',
     showPast: false,
     past: { date: '', team: {}, score1: '', score2: '', points: {}, ko: [] },
+    shuffle: { picked: {}, team1: [], team2: [], done: false },
     editWeek: null,
     editBuf: null
 };
@@ -567,22 +570,68 @@ function setPastTeam(name, team) {
     state.past.team[name] = (state.past.team[name] === team) ? null : team;
     renderSeasonTab();
 }
-// Randomly split everyone currently picked (assigned to either team) into two
-// balanced teams. A player is "in today's game" once they have T1 or T2 set.
-function randomTeams() {
-    const playing = state.data.roster.filter(p => state.past.team[p] === 'team1' || state.past.team[p] === 'team2');
-    if (playing.length < 2) { toast('Tap T1 or T2 to pick who played, then Shuffle'); return; }
-    for (let i = playing.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
-        [playing[i], playing[j]] = [playing[j], playing[i]];
-    }
-    const half = Math.ceil(playing.length / 2);
-    playing.forEach((p, idx) => { state.past.team[p] = idx < half ? 'team1' : 'team2'; });
-    renderSeasonTab();
-    toast('Teams shuffled: ' + half + ' vs ' + (playing.length - half));
-}
 function setPastPoints(name, v) { state.past.points[name] = v; }
 function setPastScore(which, v) { state.past['score' + which] = v; }
+
+/* ---------- Teams tab: balanced random shuffle ----------
+   Pick who's playing today, then split into two teams weighted by each
+   player's season points so the strongest players don't stack on one side. */
+function seasonPointsByPlayer() {
+    const pts = {};
+    (state.data.season || []).forEach(w => {
+        if (w.finalTally) Object.entries(w.finalTally).forEach(([p, v]) => {
+            pts[p] = (pts[p] || 0) + (Number(v) || 0);
+        });
+    });
+    return pts;
+}
+function toggleShufflePick(name) {
+    state.shuffle.picked[name] = !state.shuffle.picked[name];
+    state.shuffle.done = false;
+    renderTeamsTab();
+}
+function shuffleClearPicks() {
+    state.shuffle = { picked: {}, team1: [], team2: [], done: false };
+    renderTeamsTab();
+}
+// Greedy point-balanced split with randomised tie-breaks. Sorting strongest
+// first and always feeding the lighter team keeps the top players apart while
+// the random tie-breaks give a fresh split each time you shuffle.
+function shuffleMakeTeams() {
+    const picked = state.data.roster.filter(p => state.shuffle.picked[p]);
+    if (picked.length < 2) { toast('Pick at least two players first'); return; }
+    const pts = seasonPointsByPlayer();
+    const rated = picked.map(p => ({ name: p, r: pts[p] || 0 }))
+        .sort((a, b) => (b.r - a.r) || (Math.random() - 0.5));
+    const half = Math.ceil(rated.length / 2);
+    const t1 = [], t2 = [];
+    let sum1 = 0, sum2 = 0;
+    rated.forEach(x => {
+        let toOne;
+        if (t1.length >= half) toOne = false;
+        else if (t2.length >= half) toOne = true;
+        else if (sum1 < sum2) toOne = true;
+        else if (sum2 < sum1) toOne = false;
+        else toOne = Math.random() < 0.5;
+        if (toOne) { t1.push(x.name); sum1 += x.r; } else { t2.push(x.name); sum2 += x.r; }
+    });
+    state.shuffle.team1 = t1;
+    state.shuffle.team2 = t2;
+    state.shuffle.done = true;
+    renderTeamsTab();
+    toast('Teams made: ' + t1.length + ' vs ' + t2.length);
+}
+// Push the shuffled teams into the "Add a game day" form and jump there.
+function shuffleUseForGameDay() {
+    if (!state.shuffle.done) return;
+    state.past.team = {};
+    state.shuffle.team1.forEach(p => { state.past.team[p] = 'team1'; });
+    state.shuffle.team2.forEach(p => { state.past.team[p] = 'team2'; });
+    state.showPast = true;
+    if (!state.past.date) state.past.date = new Date().toISOString().split('T')[0];
+    switchTab('season');
+    toast('Teams sent to the game day form');
+}
 
 /* ---------- 12-0 rounds: King Maker / Joker badges ----------
    Buffer shape per round: { winner: 'team1'|'team2', crossed: { name: true } }.
@@ -750,7 +799,7 @@ function editWeekSave() {
 function switchTab(name) {
     state.activeTab = name;
     state.editWeek = null; state.editBuf = null;
-    ['season','roster','data'].forEach(t => {
+    ['season','teams','roster','data'].forEach(t => {
         document.getElementById('tab-' + t).style.display = t === name ? 'block' : 'none';
     });
     document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
@@ -793,6 +842,59 @@ function copyJson() {
 }
 
 /* ---------- rendering ---------- */
+function renderTeamsTab() {
+    const el = document.getElementById('tab-teams');
+    if (!state.data.roster.length) {
+        el.innerHTML = '<div class="card"><h3>&#127922; Make random teams</h3>' +
+            '<div class="meta">Add players in the <strong>Roster</strong> tab first.</div></div>';
+        return;
+    }
+    const pts = seasonPointsByPlayer();
+    const pickedCount = state.data.roster.filter(p => state.shuffle.picked[p]).length;
+
+    // Step 1 — pick who's playing today from the full pool.
+    const pickList = '<div class="roster-list">' + state.data.roster.map(p => {
+        const arg = "'" + esc(p).replace(/'/g, "\\'") + "'";
+        const on = !!state.shuffle.picked[p];
+        return '<div class="roster-item">' +
+            '<span class="rname">' + esc(p) + guestTag(p) +
+            '<span class="lb-sub">' + round2(pts[p] || 0) + ' pts</span></span>' +
+            '<button class="mini-toggle' + (on ? ' on' : '') + '" onclick="toggleShufflePick(' + arg + ')">' +
+            (on ? 'Playing' : 'Pick') + '</button>' +
+            '</div>';
+    }).join('') + '</div>';
+
+    let html = '<div class="card"><h3>&#127922; Make random teams</h3>' +
+        '<div class="hint" style="margin-bottom:12px;">Step 1 &mdash; tap <strong>Pick</strong> for everyone playing today. Step 2 &mdash; hit <strong>Shuffle &amp; make teams</strong>. Teams are balanced by season points so the top players don\'t all land on the same side.</div>' +
+        '<div class="meta" style="margin-bottom:10px;">' + pickedCount + ' picked</div>' +
+        pickList +
+        '<button class="btn green" style="margin-top:14px;" onclick="shuffleMakeTeams()">&#127922; Shuffle &amp; make teams</button>' +
+        (pickedCount ? '<button class="btn subtle" style="margin-top:8px;" onclick="shuffleClearPicks()">Clear picks</button>' : '') +
+        '</div>';
+
+    // Step 3 — show the two balanced teams.
+    if (state.shuffle.done) {
+        const t1 = state.shuffle.team1, t2 = state.shuffle.team2;
+        const sum = arr => arr.reduce((s, p) => s + (pts[p] || 0), 0);
+        const names = arr => arr.length ? arr.map(esc).join('<br>') : '&mdash;';
+        html += '<div class="card"><h3>Teams</h3>' +
+            '<div class="matchup">' +
+            '<div class="team t1"><div class="tlabel">Team 1</div>' +
+            '<div class="tscore" style="color:var(--blue)">' + round2(sum(t1)) + '</div>' +
+            '<div class="tplayers">' + names(t1) + '</div></div>' +
+            '<div class="vs">vs</div>' +
+            '<div class="team t2"><div class="tlabel">Team 2</div>' +
+            '<div class="tscore" style="color:var(--red)">' + round2(sum(t2)) + '</div>' +
+            '<div class="tplayers">' + names(t2) + '</div></div>' +
+            '</div>' +
+            '<div class="hint" style="text-align:center;margin-top:8px;">Team totals are season points &mdash; the closer they are, the more even the split.</div>' +
+            '<button class="btn green" style="margin-top:14px;" onclick="shuffleMakeTeams()">&#128260; Shuffle again</button>' +
+            '<button class="btn subtle" style="margin-top:8px;" onclick="shuffleUseForGameDay()">Use these teams for a game day</button>' +
+            '</div>';
+    }
+    el.innerHTML = html;
+}
+
 function renderRosterTab() {
     const guestCount = (state.data.guests || []).length;
     const rosterList = state.data.roster.length
@@ -864,8 +966,7 @@ function pastFormHtml() {
         '<div><label>Team 2 score</label><input type="number" step="any" value="' + esc(state.past.score2) + '" oninput="setPastScore(2, this.value)"></div>' +
         '</div>' +
         '<label style="margin-top:14px;">Who played &amp; on which team?</label>' +
-        '<div class="hint" style="margin-bottom:10px;">Tap T1 or T2 to pick who played (either side) &mdash; then hit <strong>Shuffle</strong> to split them into two random teams, or set the teams by hand. The points box is optional: leave it blank to use the team score, or type a number to override just that player.</div>' +
-        '<button class="btn subtle" style="margin-bottom:10px;" onclick="randomTeams()">&#127922; Shuffle into random teams</button>' +
+        '<div class="hint" style="margin-bottom:10px;">Tap T1 or T2 to set who played on each side by hand, or use the <strong>Teams</strong> tab to shuffle balanced teams and send them here. The points box is optional: leave it blank to use the team score, or type a number to override just that player.</div>' +
         rows +
         koEditorHtml('past', pT1, pT2) +
         '<button class="btn green" style="margin-top:14px;" onclick="savePastDay()">Save game day</button>' +
@@ -1107,6 +1208,7 @@ function renderDataTab() {
 
 function render() {
     if (state.activeTab === 'season') renderSeasonTab();
+    if (state.activeTab === 'teams') renderTeamsTab();
     if (state.activeTab === 'roster') renderRosterTab();
     if (state.activeTab === 'data') renderDataTab();
 }
