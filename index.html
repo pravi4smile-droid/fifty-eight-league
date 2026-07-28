@@ -12,6 +12,12 @@
 <meta name="description" content="Fifty Six League — Thuruppu weekly score tracker">
 <title>Fifty Six League</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234f8ff0'/%3E%3Cstop offset='1' stop-color='%232b4d8f'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='44' font-family='system-ui,sans-serif' font-size='29' font-weight='700' fill='%23fff' text-anchor='middle'%3E56%3C/text%3E%3C/svg%3E">
+<!-- Plus Jakarta Sans (variable 400-800) is the single typeface for the whole
+     app - body, headings and figures alike. It degrades to the system stack if
+     the CDN is unreachable (the app is usable offline), so it isn't load-bearing. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..800&display=swap">
 <script>
 /* Resolve the theme before first paint so there is no flash. */
 (function () {
@@ -30,8 +36,10 @@
    specular top edges and an angular sheen on every panel.
    ============================================================ */
 :root {
-    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-    --num: ui-rounded, 'SF Pro Rounded', 'Segoe UI', system-ui, sans-serif;
+    --font: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    /* Scores, ranks and tallies use the same family — the token stays so the
+       numeric role keeps one place to control tracking and figure style. */
+    --num: var(--font);
     --maxw: 640px;
     --r-2xl: 28px; --r-xl: 24px; --r-lg: 20px; --r: 15px; --r-sm: 11px;
     --tap: 44px;
@@ -173,7 +181,10 @@ body {
     font-family: var(--font);
     background: var(--bg);
     margin: 0; color: var(--text);
-    font-size: 15px; line-height: 1.45;
+    font-size: 15px; line-height: 1.45; letter-spacing: -.01em;
+    /* Jakarta ships these on by default; contextual alternates are the only
+       ones worth keeping for UI text. */
+    font-feature-settings: 'calt' 1;
     padding-bottom: calc(104px + env(safe-area-inset-bottom));
     overscroll-behavior-y: none;
     -webkit-font-smoothing: antialiased;
@@ -195,6 +206,23 @@ body::before {
     padding: 0 max(12px, env(safe-area-inset-left)) 12px max(12px, env(safe-area-inset-right));
 }
 ::selection { background: var(--tint-blue); }
+
+/* Headings: one family throughout, separated from body copy by weight and
+   tighter tracking rather than by a second typeface. */
+h1, h2, h3, .brand-text h1, .card h3, .login-box h2, .podium-title, .week-head .wk-no {
+    font-family: var(--font);
+    font-optical-sizing: auto;
+}
+h1, h2, h3 { letter-spacing: -.02em; }
+
+/* Every numeric surface gets even-width digits so columns and scores don't
+   shift as the values change. */
+.avi, .lb-rank, .lb-pts, .pod .ppts, .pod .plinth, .stat-tile .sv,
+.matchup .team .tscore, .wk-chip, .lb-table td, .lb-table th, .past-pts,
+.tally-row input, .login-box .logo, .brand-mark {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum' 1;
+}
 
 /* Shared glass recipe: translucent fill, hairline edge, specular top,
    and an angular sheen across the upper-left shoulder. */
@@ -426,8 +454,10 @@ input:focus, select:focus, textarea:focus {
 }
 .btn.subtle::after { background: linear-gradient(112deg, var(--sheen) 0%, transparent 46%); }
 .btn.small { width: auto; min-height: 34px; padding: 7px 13px; font-size: 12px; gap: 6px; border-radius: var(--r-sm); }
-/* Side-by-side buttons get tighter padding so their labels stay on one line. */
-.row .btn { padding: 13px 8px; gap: 7px; white-space: nowrap; }
+/* Side-by-side buttons get tighter metrics so their labels stay on one line
+   even at the narrowest width. */
+.row .btn { padding: 13px 6px; gap: 6px; font-size: 13.5px; white-space: nowrap; }
+.row .btn .i { width: 17px; height: 17px; }
 .btn.small .i { width: 15px; height: 15px; }
 
 .add-row { display: flex; gap: 8px; }
@@ -582,12 +612,12 @@ input:focus, select:focus, textarea:focus {
     font-size: 12.5px; font-weight: 750; line-height: 1.25;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.pod .ppts { font-family: var(--num); font-size: 17px; font-weight: 850; letter-spacing: -.4px; margin-top: 1px; }
+.pod .ppts { font-family: var(--num); font-size: 17px; font-weight: 800; letter-spacing: -.4px; margin-top: 1px; }
 .pod .psub { font-size: 10.5px; color: var(--muted); font-weight: 600; }
 .pod .plinth {
     margin-top: 8px; border-radius: 14px 14px 7px 7px;
     display: flex; align-items: flex-start; justify-content: center;
-    padding-top: 7px; font-family: var(--num); font-weight: 850; font-size: 14px;
+    padding-top: 7px; font-family: var(--num); font-weight: 800; font-size: 14px;
     box-shadow: inset 0 1px 0 var(--gloss-strong), 0 6px 16px var(--sh-cast-soft);
 }
 .pod.p1 .plinth { height: 56px; background: linear-gradient(168deg, var(--medal-1a), var(--medal-1b)); color: var(--medal-1ink); }
@@ -614,7 +644,7 @@ input:focus, select:focus, textarea:focus {
 .stat-tile > * { position: relative; }
 .stat-tile .sv {
     display: flex; align-items: center; gap: 6px;
-    font-family: var(--num); font-size: 23px; font-weight: 850;
+    font-family: var(--num); font-size: 23px; font-weight: 800;
     letter-spacing: -.8px; line-height: 1.1;
 }
 .stat-tile .sv .i { width: 21px; height: 21px; vertical-align: 0; }
@@ -635,13 +665,13 @@ input:focus, select:focus, textarea:focus {
 .lb-rank {
     width: 26px; height: 26px; border-radius: 9px; background: var(--tint-neutral); color: var(--muted);
     display: inline-flex; align-items: center; justify-content: center;
-    font-family: var(--num); font-weight: 850; font-size: 12px; flex-shrink: 0;
+    font-family: var(--num); font-weight: 800; font-size: 12px; flex-shrink: 0;
 }
 .lb-rank.r1 { background: linear-gradient(160deg, var(--medal-1a), var(--medal-1b)); color: var(--medal-1ink); box-shadow: inset 0 1px 0 var(--gloss-strong); }
 .lb-rank.r2 { background: linear-gradient(160deg, var(--medal-2a), var(--medal-2b)); color: var(--medal-2ink); box-shadow: inset 0 1px 0 var(--gloss-strong); }
 .lb-rank.r3 { background: linear-gradient(160deg, var(--medal-3a), var(--medal-3b)); color: var(--medal-3ink); box-shadow: inset 0 1px 0 var(--gloss-strong); }
 .lb-name { flex: 1; font-weight: 650; font-size: 14.5px; }
-.lb-pts { font-family: var(--num); font-weight: 850; font-size: 16px; letter-spacing: -.3px; }
+.lb-pts { font-family: var(--num); font-weight: 800; font-size: 16px; letter-spacing: -.3px; }
 .lb-sub { font-size: 11px; color: var(--muted); font-weight: 600; }
 
 /* ============================================================
@@ -695,7 +725,7 @@ input:focus, select:focus, textarea:focus {
 .lb-table .name-cell .nt { display: flex; align-items: center; gap: 5px; line-height: 1.3; }
 .lb-table .name-cell .nt > :first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .lb-table .name-cell .lb-sub { display: block; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lb-table td.lb-pts-cell { font-family: var(--num); font-weight: 850; letter-spacing: -.2px; }
+.lb-table td.lb-pts-cell { font-family: var(--num); font-weight: 800; letter-spacing: -.2px; }
 .lb-table .sorted { background: var(--sorted-bg); }
 .lb-table td.col-name.sorted, .lb-table th.col-name.sorted { background: var(--glass-solid); }
 .lb-table thead th.sorted { color: var(--primary); }
@@ -745,7 +775,7 @@ input:focus, select:focus, textarea:focus {
 .matchup .team .tlabel { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
 .matchup .team.t1 .tlabel { color: var(--on-blue); }
 .matchup .team.t2 .tlabel { color: var(--on-red); }
-.matchup .team .tscore { font-family: var(--num); font-size: 27px; font-weight: 850; letter-spacing: -1px; margin: 2px 0 4px; }
+.matchup .team .tscore { font-family: var(--num); font-size: 27px; font-weight: 800; letter-spacing: -1px; margin: 2px 0 4px; }
 .matchup .team .tplayers { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
 .tp {
     background: var(--field-on); border: 1px solid var(--hair); border-radius: 999px;
@@ -772,7 +802,7 @@ input:focus, select:focus, textarea:focus {
 .week-head .wk-no { display: flex; align-items: center; gap: 8px; min-width: 0; flex-wrap: wrap; }
 .week-head .wk-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .wk-chip {
-    font-family: var(--num); font-size: 12px; font-weight: 850; letter-spacing: -.2px;
+    font-family: var(--num); font-size: 12px; font-weight: 800; letter-spacing: -.2px;
     padding: 5px 11px; border-radius: 999px;
     background: linear-gradient(150deg, var(--strong-2), var(--strong)); color: var(--strong-fg);
     box-shadow: 0 3px 10px color-mix(in srgb, var(--strong-2) 34%, transparent), inset 0 1px 0 var(--gloss);
@@ -859,7 +889,7 @@ textarea {
     position: relative;
     width: 64px; height: 64px; margin: 0 auto 15px; border-radius: 22px;
     display: flex; align-items: center; justify-content: center;
-    font-family: var(--num); font-size: 24px; font-weight: 850; color: var(--hdr-fg); letter-spacing: -1px;
+    font-family: var(--num); font-size: 24px; font-weight: 800; color: var(--hdr-fg); letter-spacing: -1px;
     background: linear-gradient(150deg, var(--hdr-3), var(--hdr-1));
     box-shadow: 0 12px 28px color-mix(in srgb, var(--hdr-2) 48%, transparent), inset 0 1px 0 var(--hdr-spec);
     overflow: hidden;
@@ -868,7 +898,7 @@ textarea {
     content: ''; position: absolute; inset: 0;
     background: linear-gradient(112deg, var(--hdr-sheen) 0%, transparent 46%);
 }
-.login-box h2 { margin: 0 0 4px; color: var(--text); font-size: 21px; font-weight: 850; letter-spacing: -.4px; }
+.login-box h2 { margin: 0 0 4px; color: var(--text); font-size: 21px; font-weight: 800; letter-spacing: -.4px; }
 .login-box .sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
 .login-box input { margin-bottom: 10px; text-align: center; }
 .login-err { color: var(--red); font-size: 13px; font-weight: 650; min-height: 18px; margin-bottom: 8px; }
@@ -1718,7 +1748,7 @@ function bumpChartHtml(season, leaderboard) {
 
     const rowH = 34, topM = 30, botM = 40, leftM = 32;
     const maxNameLen = names.reduce((m, n) => Math.max(m, n.length), 0);
-    const rightM = Math.min(190, Math.max(90, maxNameLen * 7.0 + 46));
+    const rightM = Math.min(205, Math.max(96, maxNameLen * 7.6 + 48));
     const xStep = Math.max(64, Math.min(122, season.length > 1 ? 430 / (season.length - 1) : 430));
     const X = wi => leftM + wi * xStep;
     const Y = rank => topM + (rank - 1) * rowH;
@@ -1786,7 +1816,7 @@ function bumpChartHtml(season, leaderboard) {
         const isMedal = idx < 3;
         const MEDAL = [cssVar('--medal-1flat'), cssVar('--medal-2flat'), cssVar('--medal-3flat')];
         const pillH = 20, discR = 7.2, discGap = isMedal ? discR * 2 + 5 : 0;
-        const pillW = Math.round(p.name.length * 6.6 + 16 + discGap);
+        const pillW = Math.round(p.name.length * 7.2 + 18 + discGap);
         const px = last.x + 11, py = last.y - pillH / 2;
         const pillFill = colored(idx) ? col : cssVar('--c-pill-mute');
         const textX = px + (pillW + discGap) / 2;
@@ -1851,7 +1881,7 @@ function netChartHtml(season, leaderboard) {
 
     const topM = 26, plotH = Math.max(150, Math.min(260, ((hi - lo) / step) * 40)), botM = 40, leftM = 38;
     const maxNameLen = names.reduce((m, n) => Math.max(m, n.length), 0);
-    const rightM = Math.min(200, Math.max(96, maxNameLen * 7.0 + 58));
+    const rightM = Math.min(215, Math.max(102, maxNameLen * 7.6 + 60));
     const xStep = Math.max(64, Math.min(122, season.length > 1 ? 430 / (season.length - 1) : 430));
     const X = wi => leftM + wi * xStep;
     const Y = v => topM + (hi - v) / (hi - lo) * plotH;
@@ -1911,7 +1941,7 @@ function netChartHtml(season, leaderboard) {
         const last = pts[pts.length - 1];
         const sv = last.v > 0 ? '+' + last.v : String(last.v);
         const tag = p.name + '  ' + sv;
-        const pillW = Math.round(tag.length * 6.6 + 16), pillH = 20, px = last.x + 11, py = last.y - pillH / 2;
+        const pillW = Math.round(tag.length * 7.2 + 18), pillH = 20, px = last.x + 11, py = last.y - pillH / 2;
         const pillFill = colored(idx) ? col : cssVar('--c-pill-mute');
         svg += '<g opacity="' + (dim ? 0.3 : 1) + '" onclick="toggleChartHighlight(' + arg + ')" style="cursor:pointer">' +
             '<rect x="' + px + '" y="' + py + '" width="' + pillW + '" height="' + pillH + '" rx="10" fill="' + pillFill + '"' +
