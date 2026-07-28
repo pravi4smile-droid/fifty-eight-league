@@ -165,7 +165,7 @@ body::before {
    ============================================================ */
 .hero {
     position: relative; overflow: hidden;
-    margin: 0 0 14px; padding: calc(14px + env(safe-area-inset-top)) 12px 18px;
+    margin: 0 0 14px; padding: calc(11px + env(safe-area-inset-top)) 12px 13px;
     border-radius: 0 0 var(--r-2xl) var(--r-2xl);
     background: linear-gradient(142deg, var(--hdr-1), var(--hdr-2) 52%, var(--hdr-3));
     color: #fff; box-shadow: var(--sh-md);
@@ -184,7 +184,7 @@ body::before {
 }
 .hero-top { display: flex; align-items: center; gap: 11px; }
 .brand-mark {
-    width: 44px; height: 44px; flex-shrink: 0; border-radius: 15px;
+    width: 40px; height: 40px; flex-shrink: 0; border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
     font-family: var(--num); font-weight: 800; font-size: 17px; letter-spacing: -.6px;
     background: linear-gradient(155deg, rgba(255,255,255,.38), rgba(255,255,255,.08));
@@ -209,20 +209,6 @@ body::before {
     transition: transform .16s var(--ease), background .2s;
 }
 .icon-btn:active { transform: scale(.9); background: rgba(255,255,255,.3); }
-.sync-status {
-    display: inline-flex; align-items: center; gap: 6px; margin-top: 13px;
-    font-size: 11px; font-weight: 700; letter-spacing: .2px;
-    padding: 6px 12px 6px 10px; border-radius: 999px;
-    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.22);
-    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
-}
-.sync-status .dot { width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
-.sync-status.online { background: rgba(34,197,94,.28); border-color: rgba(134,239,172,.4); }
-.sync-status.online .dot { background: #4ade80; animation: pulse 2.4s infinite; }
-.sync-status.offline { background: rgba(245,158,11,.3); border-color: rgba(253,224,71,.4); }
-.sync-status.offline .dot { background: #fbbf24; }
-@keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.6); } 70% { box-shadow: 0 0 0 7px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }
 
 /* ============================================================
    Floating glass tab dock
@@ -384,6 +370,8 @@ input:focus, select:focus, textarea:focus {
 }
 .btn.subtle::after { background: linear-gradient(112deg, var(--sheen) 0%, transparent 46%); }
 .btn.small { width: auto; min-height: 34px; padding: 7px 13px; font-size: 12px; gap: 6px; border-radius: var(--r-sm); }
+/* Side-by-side buttons get tighter padding so their labels stay on one line. */
+.row .btn { padding: 13px 8px; gap: 7px; white-space: nowrap; }
 .btn.small .i { width: 15px; height: 15px; }
 
 .add-row { display: flex; gap: 8px; }
@@ -878,7 +866,6 @@ textarea {
                 <button class="icon-btn" id="theme-btn" title="Theme" aria-label="Switch theme" onclick="cycleTheme()"></button>
             </div>
         </div>
-        <span class="sync-status" id="sync-status"><i class="dot"></i>Connecting&hellip;</span>
     </div>
 </header>
 
@@ -1074,12 +1061,9 @@ function serverSave() {
     }, 400);
 }
 let wasOnline = null;
+// No persistent status badge — sync is silent while it works. A failed save
+// still toasts once, so data that only made it to this device isn't silent.
 function setOnline(on, detail) {
-    const el = document.getElementById('sync-status');
-    el.innerHTML = '<i class="dot"></i>' + (on ? 'Synced to server' : 'Offline &middot; saved on device');
-    el.className = 'sync-status ' + (on ? 'online' : 'offline');
-    if (detail) el.title = detail;
-    // Surface the reason once when a save first drops offline, so it's diagnosable.
     if (!on && detail && wasOnline !== false) toast('Save not synced: ' + detail);
     wasOnline = on;
 }
@@ -1337,15 +1321,14 @@ function koEditorHtml(ctx, team1, team2) {
             '<button class="' + (r.winner === 'team1' ? 'on-t1' : '') + '" onclick="setKoWinner(\'' + ctx + '\',' + i + ',\'team1\')">Team 1 won 12-0</button>' +
             '<button class="' + (r.winner === 'team2' ? 'on-t2' : '') + '" onclick="setKoWinner(\'' + ctx + '\',' + i + ',\'team2\')">Team 2 won 12-0</button>' +
             '</div>' +
-            '<div class="hint">' + iconKing('i-sm') + ' King Maker (+2 each): ' + (winTeam.length ? winTeam.map(esc).join(', ') : '—') + '</div>' +
-            '<div class="hint" style="margin-top:6px;">' + iconJoker('i-sm') + ' Jokers &mdash; tap anyone who lifted theirs:</div>' +
+            '<div class="hint">' + iconKing('i-sm') + ' King Maker: ' + (winTeam.length ? winTeam.map(esc).join(', ') : '—') + '</div>' +
+            '<div class="hint" style="margin-top:6px;">' + iconJoker('i-sm') + ' Jokers</div>' +
             '<div class="ko-jokers">' + jokers + '</div>' +
             '</div>';
     }).join('');
     const canUse = team1.length && team2.length;
     return '<div style="margin-top:14px;">' +
         '<label>12-0 rounds (King Maker / Joker)</label>' +
-        '<div class="hint" style="margin-bottom:8px;">Add a round here <strong>only if it ended 12-0</strong>. The winning team each get a King Maker badge; the losers each get a Joker &mdash; tap any loser who lifted theirs. Add one per 12-0 round (a week can have several).</div>' +
         (canUse
             ? rows + '<button class="btn subtle" onclick="addKoRound(\'' + ctx + '\')">+ Add a 12-0 round</button>'
             : '<div class="meta">Assign both teams first to add 12-0 rounds.</div>') +
@@ -1543,9 +1526,7 @@ function renderTeamsTab() {
             '" onclick="setShuffleTol(' + t.v + ')">' + t.l + '</button>').join('') + '</div>';
 
     let html = '<div class="card"><h3>' + icon('shuffle') + 'Make random teams</h3>' +
-        '<div class="hint" style="margin-bottom:12px;">Step 1 &mdash; tap <strong>Pick</strong> for everyone playing today. Step 2 &mdash; hit <strong>Shuffle &amp; make teams</strong>. Picks are random, but kept within the balance tolerance below so the top players don\'t all land on the same side.</div>' +
         '<label>Balance tolerance</label>' +
-        '<div class="hint" style="margin-bottom:4px;">How far apart the teams\' season points may drift. Looser = more random, tighter = more even.</div>' +
         tolBtns +
         '<div class="meta" style="margin:10px 0;">' + pickedCount + ' picked</div>' +
         pickList +
@@ -1569,7 +1550,6 @@ function renderTeamsTab() {
             '<div class="tplayers">' + playerChips(t2) + '</div></div>' +
             '</div>' +
             '<div class="score-caption">Season points &middot; gap ' + gap + '</div>' +
-            '<div class="hint" style="text-align:center;margin-top:8px;">Team totals are season points &mdash; the closer they are, the more even the split.</div>' +
             '<button class="btn green" style="margin-top:14px;" onclick="shuffleMakeTeams()">' + icon('refresh') + 'Shuffle again</button>' +
             '<button class="btn subtle" style="margin-top:8px;" onclick="shuffleUseForGameDay()">Use these teams for a game day</button>' +
             '</div>';
@@ -1591,11 +1571,10 @@ function renderRosterTab() {
                 '<button class="mini-btn danger" title="Remove" onclick="removeRosterPlayer(' + arg + ')">' + icon('x') + '</button>' +
                 '</div>';
         }).join('') + '</div>'
-        : '<div class="meta">No players yet. Add your regulars once &mdash; they will be remembered across game nights.</div>';
+        : '<div class="meta">No players yet.</div>';
 
     document.getElementById('tab-roster').innerHTML =
         '<div class="card"><h3>' + icon('users') + 'Roster (' + state.data.roster.length + ' players' + (guestCount ? ', ' + guestCount + ' guest' + (guestCount > 1 ? 's' : '') : '') + ')</h3>' +
-        '<div class="hint" style="margin-bottom:12px;">Your players. Tap <strong>Guest</strong> to mark someone as a guest, ' + icon('pencil', 'i-xs') + ' to rename (updates past games too), or ' + icon('x', 'i-xs') + ' to remove. Removing keeps past game history.</div>' +
         rosterList +
         '<div class="add-row" style="margin-top:14px;">' +
         '<input id="new-player" type="text" placeholder="Add player name" onkeydown="if(event.key===\'Enter\')addRosterPlayer()">' +
@@ -1747,10 +1726,7 @@ function bumpChartHtml(season, leaderboard) {
     });
     svg += '</svg>';
 
-    return '<div class="lb-sort">Lower line = higher rank. Tap a player to spotlight their run; tap again to reset.</div>' +
-        '<div class="chart-wrap">' + svg + '</div>' +
-        '<div class="hint">Standing after each week by total points so far. A line begins the week a player first plays' +
-        (names.length > 8 ? '; players outside the top 8 are shown in grey' : '') + '.</div>';
+    return '<div class="chart-wrap">' + svg + '</div>';
 }
 
 // Cumulative badge tallies after each week, and the Net they imply.
@@ -1866,16 +1842,12 @@ function netChartHtml(season, leaderboard) {
     });
     svg += '</svg>';
 
-    return '<div class="lb-sort">Above the zero line = net positive (more King Maker); below = net negative. Tap a player to spotlight.</div>' +
-        '<div class="chart-wrap">' + svg + '</div>' +
-        '<div class="hint">Running <strong>Net = King Maker &minus; (Jokers &minus; lifted)</strong> after each week. Tap a dot for that week\'s badge breakdown' +
-        (names.length > 8 ? '; players outside the top 8 are shown in grey' : '') + '.</div>';
+    return '<div class="chart-wrap">' + svg + '</div>';
 }
 
 function pastFormHtml() {
     if (!state.showPast) {
-        return '<div class="card"><button class="btn" onclick="togglePastForm()">' + icon('plus') + 'Add a game day</button>' +
-            '<div class="hint" style="text-align:center;">Record a week &mdash; pick the date, set the teams and each team\'s end-of-week score.</div></div>';
+        return '<div class="card"><button class="btn" onclick="togglePastForm()">' + icon('plus') + 'Add a game day</button></div>';
     }
     if (state.data.roster.length < 2) {
         return '<div class="card"><h3>' + icon('calendar') + 'Add a game day</h3>' +
@@ -1905,13 +1877,11 @@ function pastFormHtml() {
         '<label>Game date</label>' +
         '<input type="date" value="' + esc(state.past.date) + '" max="' + new Date().toISOString().split('T')[0] + '" onchange="setPastDate(this.value)">' +
         '<label style="margin-top:14px;">Team score for the week</label>' +
-        '<div class="hint" style="margin-bottom:10px;">This score is given to <strong>every player on the team</strong> for the leaderboard.</div>' +
         '<div class="row">' +
         '<div><label>Team 1 score</label><input type="number" step="any" value="' + esc(state.past.score1) + '" oninput="setPastScore(1, this.value)"></div>' +
         '<div><label>Team 2 score</label><input type="number" step="any" value="' + esc(state.past.score2) + '" oninput="setPastScore(2, this.value)"></div>' +
         '</div>' +
         '<label style="margin-top:14px;">Who played &amp; on which team?</label>' +
-        '<div class="hint" style="margin-bottom:10px;">Tap T1 or T2 to set who played on each side by hand, or use the <strong>Teams</strong> tab to shuffle balanced teams and send them here. The points box is optional: leave it blank to use the team score, or type a number to override just that player.</div>' +
         rows +
         koEditorHtml('past', pT1, pT2) +
         '<button class="btn green" style="margin-top:14px;" onclick="savePastDay()">Save game day</button>' +
@@ -1946,13 +1916,9 @@ function podiumHtml(byPoints) {
             '<div class="plinth">' + n + '</div>' +
             '</div>';
     }).join('');
-    const lead = byPoints[0];
     return '<div class="podium">' +
         '<div class="podium-title">' + icon('trophy') + 'Season leaders</div>' +
         '<div class="podium-row">' + cells + '</div>' +
-        '<div class="hint" style="text-align:center;margin-top:12px;">' +
-        esc(lead.name) + ' leads with ' + round2(lead.points) + ' pts · ' +
-        lead.roundWins + ' round wins · ' + lead.weeks + ' weeks played</div>' +
         '</div>';
 }
 
@@ -1962,8 +1928,7 @@ function renderSeasonTab() {
 
     if (season.length === 0) {
         html += '<div class="card"><div class="empty"><div class="big">' + icon('trophy') + '</div>' +
-            '<strong style="display:block;color:var(--text);font-size:15px;margin-bottom:4px;">No game days yet</strong>' +
-            'Add your first game day above and the leaderboard, charts and season stats will appear here.</div></div>';
+            '<strong style="display:block;color:var(--text);font-size:15px;">No game days yet</strong></div></div>';
     } else {
         // Per-player aggregates
         const stats = {};
@@ -2032,7 +1997,6 @@ function renderSeasonTab() {
 
             // Ranking table
             const rankingHtml =
-                '<div class="lb-sort">Tap a column heading to sort.</div>' +
                 '<div class="lb-table-wrap"><table class="lb-table"><thead><tr>' +
                 '<th class="col-name">Player</th>' +
                 th(iconKing('i-sm'), 'kings', 'King Maker') +
@@ -2057,7 +2021,7 @@ function renderSeasonTab() {
                     '<td class="lb-pts-cell ' + (sortBy === 'points' ? 'sorted' : '') + '" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(p.points) + '</td>' +
                     '</tr>').join('') +
                 '</tbody></table></div>' +
-                '<div class="hint">' + iconKing('i-sm') + ' King Maker \u00b7 ' + iconJoker('i-sm') + ' Jokers \u00b7 ' + iconCrossed(true) + ' lifted Joker \u00b7 PPGW = points \u00f7 weeks played. Points = tally (badges are counted but add no points).</div>';
+                '';
 
             // Weekly breakdown: "points won" (badges add no points).
             const cellFor = (w, p) => {
@@ -2084,7 +2048,7 @@ function renderSeasonTab() {
                         cells + '<td class="lb-pts-cell" style="color:' + (total >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(total) + '</td></tr>';
                 }).join('') +
                 '</tbody></table></div>' +
-                '<div class="hint">Each cell is that week\'s points won. \u2013 = didn\'t play.</div>';
+                '';
 
             html += '<div class="card"><h3>' + icon('trophy') + 'Player leaderboard</h3>' +
                 '<div class="lb-view">' +
@@ -2178,8 +2142,8 @@ function weekEditHtml(w) {
           '<div><label>Team 1 score</label><input type="number" step="any" value="' + esc(state.editBuf.score1) + '" oninput="setEditScore(1, this.value)"></div>' +
           '<div><label>Team 2 score</label><input type="number" step="any" value="' + esc(state.editBuf.score2) + '" oninput="setEditScore(2, this.value)"></div>' +
           '</div>' +
-          '<div class="hint" style="margin:8px 0;">Team score applies to everyone on the team. Fill a player box only to override that player.</div>'
-        : '<div class="hint" style="margin:8px 0;">Edit each player\'s points for this week.</div>';
+          ''
+        : '';
     const rows = weekPlayers(w).map(p => {
         const arg = jsArg(p);
         const ph = isManual ? 'team' : '0';
@@ -2217,7 +2181,7 @@ function renderDataTab() {
         '<button class="btn blue" onclick="document.getElementById(\'import-file\').click()">' + icon('upload') + 'Import JSON</button>' +
         '</div>' +
         '<input id="import-file" type="file" accept=".json" onchange="importData(event)" style="display:none;">' +
-        '<div class="hint">When signed in and online, every change is saved to Vercel Blob storage (shared across all devices). Export a JSON copy any time for an extra backup.</div></div>' +
+        '</div>' +
         '<div class="card"><h3>' + icon('copy') + 'Raw data</h3>' +
         '<textarea readonly>' + esc(JSON.stringify(state.data, null, 2)) + '</textarea>' +
         '<button class="btn subtle" style="margin-top:10px;" onclick="copyJson()">' + icon('copy') + 'Copy to clipboard</button></div>' +
