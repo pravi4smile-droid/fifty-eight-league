@@ -572,7 +572,6 @@ input:focus, select:focus, textarea:focus {
 .badge.made { background: var(--tint-green); color: var(--on-green); }
 .badge.lost { background: var(--tint-red); color: var(--on-red); }
 .badge.thani { background: var(--tint-amber); color: var(--on-amber); }
-.badge.manual { background: var(--tint-violet); color: var(--on-violet); }
 
 /* ============================================================
    Podium (season leaders)
@@ -760,27 +759,67 @@ input:focus, select:focus, textarea:focus {
 /* ============================================================
    Matchup (teams per game week)
    ============================================================ */
-.matchup { display: flex; align-items: stretch; gap: 8px; margin-top: 12px; }
+/* The two cards mirror each other around the "vs": each team's label hugs the
+   outer edge and its score hugs the inner one, so the scores sit face to face
+   across the divider.
+   container-type lets the score size itself against the real card width. */
+.matchup { display: flex; align-items: stretch; gap: 6px; margin-top: 12px; container-type: inline-size; }
 .matchup .team {
-    flex: 1; position: relative; overflow: hidden;
+    flex: 1; min-width: 0; position: relative; overflow: hidden;
     background: var(--glass-2); border: 1px solid var(--hair);
-    border-radius: var(--r-lg); padding: 12px 9px; text-align: center;
+    border-radius: var(--r-lg); padding: 7px;
     box-shadow: inset 0 1px 0 var(--spec);
+    /* Centred label on row 1; roster and score share row 2 as two panels.
+       Team 2 swaps the columns so both scores face the "vs". */
+    display: grid; grid-template-columns: minmax(0, 1fr) auto;
+    align-items: stretch; column-gap: 4px; row-gap: 5px;
 }
 .matchup .team::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; }
 .matchup .team.t1::before { background: linear-gradient(90deg, var(--blue), color-mix(in srgb, var(--blue) 40%, transparent)); }
-.matchup .team.t2::before { background: linear-gradient(90deg, var(--red), color-mix(in srgb, var(--red) 40%, transparent)); }
-.matchup .team.win { background: var(--tint-green); border-color: color-mix(in srgb, var(--green) 42%, transparent); }
-.matchup .team .tlabel { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
+.matchup .team.t2::before { background: linear-gradient(90deg, color-mix(in srgb, var(--red) 40%, transparent), var(--red)); }
+/* The winner is marked with a green edge rather than a background wash — a
+   full-card tint would sit under both panels and muddy their colours. */
+.matchup .team.win {
+    border-color: color-mix(in srgb, var(--green) 60%, transparent);
+    box-shadow: inset 0 1px 0 var(--spec), 0 0 0 1.5px color-mix(in srgb, var(--green) 22%, transparent);
+}
+/* Row 1: the team label, centred across both columns. */
+.matchup .team .tlabel {
+    grid-area: 1 / 1 / 2 / 3; text-align: center;
+    font-size: 10px; font-weight: 800;
+    text-transform: uppercase; letter-spacing: .4px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+/* Row 2, outer column: the roster on its own neutral panel. */
+.matchup .team .tplayers {
+    grid-area: 2 / 1; background: var(--tint-neutral);
+    border-radius: var(--r); padding: 7px 6px;
+    display: flex; flex-direction: column; justify-content: center;
+    align-items: flex-start; gap: 2px; min-width: 0;
+}
+/* Row 2, inner column: the score on a panel tinted with the team's colour. */
+.matchup .team .tscore {
+    grid-area: 2 / 2; min-width: 36px; padding: 8px 4px;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: var(--r); box-shadow: inset 0 1px 0 var(--spec);
+    font-family: var(--num); font-size: clamp(20px, 7.5cqi, 30px);
+    font-weight: 800; letter-spacing: -1px; line-height: 1; white-space: nowrap;
+}
 .matchup .team.t1 .tlabel { color: var(--on-blue); }
 .matchup .team.t2 .tlabel { color: var(--on-red); }
-.matchup .team .tscore { font-family: var(--num); font-size: 27px; font-weight: 800; letter-spacing: -1px; margin: 2px 0 4px; }
-.matchup .team .tplayers { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+.matchup .team.t1 .tscore { background: var(--tint-blue); }
+.matchup .team.t2 .tscore { background: var(--tint-red); }
+/* Team 2 is the mirror image: score inboard on the left, names outboard right. */
+.matchup .team.t2 { grid-template-columns: auto minmax(0, 1fr); text-align: right; }
+.matchup .team.t2 .tplayers { grid-area: 2 / 2; align-items: flex-end; }
+.matchup .team.t2 .tscore { grid-area: 2 / 1; }
+/* Plain rows, not pills — the panel behind them already does the grouping,
+   and dropping the chrome gives long names the width they need. */
 .tp {
-    background: var(--field-on); border: 1px solid var(--hair); border-radius: 999px;
-    padding: 3px 10px; font-size: 11.5px; font-weight: 650; color: var(--text-2);
+    /* Scales with the card, like the score, so long names survive small screens. */
+    font-size: clamp(10.5px, 3.35cqi, 12px);
+    font-weight: 650; color: var(--text-2); line-height: 1.5;
     max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-    box-shadow: inset 0 1px 0 var(--spec);
 }
 .tp-none { font-size: 12px; color: var(--muted); }
 .matchup .vs {
@@ -2184,7 +2223,6 @@ function renderSeasonTab() {
             const t2names = playerChips(players.team2);
             const s1 = w.manual ? w.teamScores.team1 : t1r;
             const s2 = w.manual ? w.teamScores.team2 : t2r;
-            const caption = w.manual ? 'Final score' : 'Rounds won';
 
             const ko = w.koRounds || [];
             let koLine = '';
@@ -2206,8 +2244,7 @@ function renderSeasonTab() {
             html += '<div class="card">' +
                 '<div class="week-head">' +
                 '<span class="wk-no"><span class="wk-chip">W' + w.week + '</span>' +
-                '<span class="wk-date">' + esc(w.date) + '</span>' +
-                (w.manual ? '<span class="badge manual">manual</span>' : '') + '</span>' +
+                '<span class="wk-date">' + esc(w.date) + '</span></span>' +
                 '<span class="wk-right">' +
                 (editing ? '' : '<button class="btn small subtle" onclick="editWeekOpen(' + i + ')">' + icon('pencil') + 'Edit points</button>') +
                 '</span></div>' +
@@ -2220,7 +2257,6 @@ function renderSeasonTab() {
                 '<div class="tscore" style="color:var(--red)">' + s2 + '</div>' +
                 '<div class="tplayers">' + t2names + '</div></div>' +
                 '</div>' +
-                '<div class="score-caption">' + caption + '</div>' +
                 koLine +
                 (editing ? weekEditHtml(w) : '') +
                 '</div>';
