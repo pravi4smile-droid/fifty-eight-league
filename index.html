@@ -543,7 +543,6 @@ input:focus, select:focus, textarea:focus {
 }
 .mini-btn:active { transform: scale(.92); }
 .mini-btn .i { width: 16px; height: 16px; vertical-align: 0; }
-.mini-btn.danger { color: var(--red); }
 .guest-check {
     display: inline-flex; align-items: center; gap: 9px; margin-top: 12px;
     font-size: 13.5px; font-weight: 650; color: var(--text);
@@ -1257,14 +1256,6 @@ function addRosterPlayer() {
     render();
     toast(name + (state.newGuest ? ' added as guest' : ' added to roster'));
 }
-function removeRosterPlayer(name) {
-    if (!confirm('Remove ' + name + ' from roster? (Past game history is kept)')) return;
-    state.data.roster = state.data.roster.filter(p => p !== name);
-    state.data.guests = (state.data.guests || []).filter(g => g !== name);
-    if (state.past && state.past.team) delete state.past.team[name];
-    persist();
-    render();
-}
 function renameRosterPlayer(oldName) {
     const newName = (prompt('Rename "' + oldName + '" to:', oldName) || '').trim();
     if (!newName || newName === oldName) return;
@@ -1674,7 +1665,6 @@ function renderRosterTab() {
                 '<span class="rname">' + esc(p) + (g ? ' <span class="guest-tag">Guest</span>' : '') + '</span>' +
                 '<button class="mini-toggle' + (g ? ' on' : '') + '" title="Toggle guest" onclick="toggleGuest(' + arg + ')">Guest</button>' +
                 '<button class="mini-btn" title="Rename" onclick="renameRosterPlayer(' + arg + ')">' + icon('pencil') + '</button>' +
-                '<button class="mini-btn danger" title="Remove" onclick="removeRosterPlayer(' + arg + ')">' + icon('x') + '</button>' +
                 '</div>';
         }).join('') + '</div>'
         : '<div class="meta">No players yet.</div>';
@@ -2195,9 +2185,6 @@ function renderSeasonTab() {
             const s1 = w.manual ? w.teamScores.team1 : t1r;
             const s2 = w.manual ? w.teamScores.team2 : t2r;
             const caption = w.manual ? 'Final score' : 'Rounds won';
-            const footer = w.manual
-                ? 'Entered manually' + (w.finalTally ? ' \u00b7 points recorded ' + icon('check','i-xs') + '' : '')
-                : w.games.length + ' games' + (w.finalTally ? ' \u00b7 tally saved ' + icon('check','i-xs') + '' : ' \u00b7 tally pending');
 
             const ko = w.koRounds || [];
             let koLine = '';
@@ -2234,7 +2221,6 @@ function renderSeasonTab() {
                 '<div class="tplayers">' + t2names + '</div></div>' +
                 '</div>' +
                 '<div class="score-caption">' + caption + '</div>' +
-                '<div class="meta" style="text-align:center;margin-top:8px;">' + footer + '</div>' +
                 koLine +
                 (editing ? weekEditHtml(w) : '') +
                 '</div>';
