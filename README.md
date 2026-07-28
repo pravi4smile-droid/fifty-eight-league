@@ -1,4 +1,4 @@
-# Fifty Eight League — Thuruppu Game Tracker
+# Fifty Six League — Thuruppu Game Tracker
 
 Weekly score tracker for Thuruppu (28/56). Supports 4/6/8/10 players, a saved
 roster with dropdown seat assignment, round-table view with team colours, team &

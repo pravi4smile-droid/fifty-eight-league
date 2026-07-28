@@ -3,15 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#1e3a5f" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0b1020" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#e8edf8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#070b16" media="(prefers-color-scheme: dark)">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="58 League">
-<meta name="description" content="Fifty Eight League — Thuruppu weekly score tracker">
-<title>Fifty Eight League</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231e3a5f'/%3E%3Ctext x='32' y='44' font-family='sans-serif' font-size='30' font-weight='bold' fill='%23fff' text-anchor='middle'%3E58%3C/text%3E%3C/svg%3E">
+<meta name="apple-mobile-web-app-title" content="56 League">
+<meta name="description" content="Fifty Six League — Thuruppu weekly score tracker">
+<title>Fifty Six League</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%234f8ff0'/%3E%3Cstop offset='1' stop-color='%232b4d8f'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='16' fill='url(%23g)'/%3E%3Ctext x='32' y='44' font-family='system-ui,sans-serif' font-size='29' font-weight='700' fill='%23fff' text-anchor='middle'%3E56%3C/text%3E%3C/svg%3E">
 <script>
 /* Resolve the theme before first paint so there is no flash. */
 (function () {
@@ -25,277 +25,395 @@
 </script>
 <style>
 /* ============================================================
-   Design tokens
+   Fifty Six League — Liquid Glass theme
+   Translucent layered surfaces over a soft colour field, with
+   specular top edges and an angular sheen on every panel.
    ============================================================ */
 :root {
     --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
     --num: ui-rounded, 'SF Pro Rounded', 'Segoe UI', system-ui, sans-serif;
     --maxw: 640px;
-    --r-xl: 22px; --r-lg: 18px; --r: 14px; --r-sm: 10px; --r-xs: 8px;
+    --r-2xl: 28px; --r-xl: 24px; --r-lg: 20px; --r: 15px; --r-sm: 11px;
     --tap: 44px;
     --ease: cubic-bezier(.2,.7,.3,1);
+    --blur: 22px;
+    --sat: 175%;
 }
 :root[data-theme="light"] {
     color-scheme: light;
-    --bg: #eaeff7;
-    --bg-a: #e3ebf6; --bg-b: #f5f8fc;
-    --card: #ffffff; --card-2: #f6f8fc; --field: #f5f7fb;
-    --text: #0f172a; --text-2: #334155; --muted: #6b7280;
-    --border: #e3e9f1; --border-2: #eef2f7;
-    --primary: #1e3a5f; --strong: #22456f; --strong-2: #35699f; --strong-fg: #ffffff;
-    --blue: #2563eb; --red: #e11d48; --green: #16a34a; --accent: #e07c12;
-    --violet: #6d28d9; --gold: #e0a80b;
-    --tint-blue: #e8f0fe; --tint-red: #fdeaef; --tint-green: #e6f7ee;
-    --tint-amber: #fff3e0; --tint-violet: #efe9fb; --tint-neutral: #eef1f7;
-    --on-blue: #1d4ed8; --on-red: #be123c; --on-green: #15803d;
-    --on-amber: #b45309; --on-violet: #6d28d9;
-    --sorted-bg: #f1f6fd;
-    --chart-plot: #f7f9fc; --chart-stripe: #0b1220; --chart-stripe-op: .035;
-    --hdr-1: #16304f; --hdr-2: #24507f; --hdr-3: #3a76b0;
-    --sh-sm: 0 1px 2px rgba(15,23,42,.05), 0 2px 6px rgba(15,23,42,.05);
-    --sh-md: 0 6px 20px rgba(15,23,42,.08);
-    --sh-lg: 0 16px 40px rgba(15,23,42,.16);
-    --glass: rgba(255,255,255,.86);
-    --scrim: rgba(15,23,42,.45);
+    --bg: #e9eef8;
+    --blob-1: #7ba9f0; --blob-2: #b9a2f2; --blob-3: #7fd6c2;
+    --text: #0d1526; --text-2: #33415a; --muted: #67748c;
+
+    --glass: rgba(255,255,255,.60);
+    --glass-2: rgba(255,255,255,.42);
+    --glass-solid: #fbfcfe;
+    --edge: rgba(255,255,255,.85);
+    --hair: rgba(13,21,38,.09);
+    --spec: rgba(255,255,255,.92);
+    --sheen: rgba(255,255,255,.34);
+    --field: rgba(255,255,255,.55);
+    --field-on: rgba(255,255,255,.92);
+
+    --primary: #21518f; --strong: #2b62ab; --strong-2: #4a90e2; --strong-fg: #fff;
+    --blue: #2f6fdb; --red: #e0405f; --green: #17a05c; --accent: #dd8412;
+    --violet: #7043d6; --gold: #d9a012;
+    --tint-blue: rgba(47,111,219,.13); --tint-red: rgba(224,64,95,.13);
+    --tint-green: rgba(23,160,92,.14); --tint-amber: rgba(221,132,18,.15);
+    --tint-violet: rgba(112,67,214,.13); --tint-neutral: rgba(13,21,38,.055);
+    --on-blue: #1d4ed8; --on-red: #c02c49; --on-green: #10794a;
+    --on-amber: #a45f0a; --on-violet: #5b32b8;
+    --sorted-bg: rgba(47,111,219,.08);
+
+    --chart-plot: rgba(255,255,255,.5); --chart-stripe: #0d1526; --chart-stripe-op: .04;
+    --hdr-1: #1d3f75; --hdr-2: #2f6bb5; --hdr-3: #57a0e0;
+
+    --sh-sm: 0 1px 2px rgba(13,21,38,.05), 0 4px 14px rgba(13,21,38,.06);
+    --sh-md: 0 8px 28px rgba(13,21,38,.10), 0 2px 8px rgba(13,21,38,.05);
+    --sh-lg: 0 20px 52px rgba(13,21,38,.18), 0 4px 12px rgba(13,21,38,.08);
+    --scrim: rgba(13,21,38,.4);
 }
 :root[data-theme="dark"] {
     color-scheme: dark;
-    --bg: #0a0f1d;
-    --bg-a: #0d152a; --bg-b: #080d19;
-    --card: #141b2e; --card-2: #1a2237; --field: #1a2237;
-    --text: #e9edf6; --text-2: #c4ccdd; --muted: #8d99b2;
-    --border: #263048; --border-2: #1f2740;
-    --primary: #8ab4f8; --strong: #2c5c96; --strong-2: #4485d1; --strong-fg: #ffffff;
-    --blue: #60a5fa; --red: #fb7185; --green: #4ade80; --accent: #fbbf24;
-    --violet: #a78bfa; --gold: #fbbf24;
-    --tint-blue: #16294a; --tint-red: #3b1526; --tint-green: #0f2f23;
-    --tint-amber: #382a11; --tint-violet: #251b46; --tint-neutral: #1d2438;
-    --on-blue: #93c5fd; --on-red: #fda4af; --on-green: #86efac;
-    --on-amber: #fcd34d; --on-violet: #c4b5fd;
-    --sorted-bg: #1a2540;
-    --chart-plot: #101728; --chart-stripe: #ffffff; --chart-stripe-op: .05;
-    --hdr-1: #101c33; --hdr-2: #1a3860; --hdr-3: #245288;
-    --sh-sm: 0 1px 2px rgba(0,0,0,.4);
-    --sh-md: 0 8px 24px rgba(0,0,0,.45);
-    --sh-lg: 0 18px 44px rgba(0,0,0,.6);
-    --glass: rgba(20,27,46,.86);
+    --bg: #070b16;
+    --blob-1: #23508f; --blob-2: #4b2f86; --blob-3: #16564c;
+    --text: #eaeffa; --text-2: #c3cde0; --muted: #8d9ab4;
+
+    --glass: rgba(30,38,60,.56);
+    --glass-2: rgba(30,38,60,.38);
+    --glass-solid: #151c2f;
+    --edge: rgba(255,255,255,.13);
+    --hair: rgba(255,255,255,.09);
+    --spec: rgba(255,255,255,.22);
+    --sheen: rgba(255,255,255,.07);
+    --field: rgba(255,255,255,.06);
+    --field-on: rgba(255,255,255,.11);
+
+    --primary: #8fbcff; --strong: #2d63aa; --strong-2: #4d95e8; --strong-fg: #fff;
+    --blue: #5fa2fb; --red: #fb6f8c; --green: #43d68a; --accent: #f5ae30;
+    --violet: #a98cfa; --gold: #f5c542;
+    --tint-blue: rgba(95,162,251,.17); --tint-red: rgba(251,111,140,.16);
+    --tint-green: rgba(67,214,138,.15); --tint-amber: rgba(245,174,48,.16);
+    --tint-violet: rgba(169,140,250,.16); --tint-neutral: rgba(255,255,255,.07);
+    --on-blue: #9cc6ff; --on-red: #ffa2b3; --on-green: #85e9b4;
+    --on-amber: #ffcd6f; --on-violet: #c9b2ff;
+    --sorted-bg: rgba(95,162,251,.11);
+
+    --chart-plot: rgba(255,255,255,.045); --chart-stripe: #ffffff; --chart-stripe-op: .05;
+    --hdr-1: #14264a; --hdr-2: #1f4a86; --hdr-3: #2e6cb0;
+
+    --sh-sm: 0 1px 2px rgba(0,0,0,.45);
+    --sh-md: 0 10px 30px rgba(0,0,0,.5);
+    --sh-lg: 0 22px 56px rgba(0,0,0,.62);
     --scrim: rgba(0,0,0,.6);
 }
 
 /* ============================================================
-   Base
+   Base + the colour field the glass refracts
    ============================================================ */
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html { -webkit-text-size-adjust: 100%; }
 body {
     font-family: var(--font);
     background: var(--bg);
-    background-image: radial-gradient(1200px 600px at 50% -10%, var(--bg-a), transparent 70%),
-                      linear-gradient(180deg, var(--bg-b), var(--bg) 40%);
-    background-attachment: fixed;
     margin: 0; color: var(--text);
     font-size: 15px; line-height: 1.45;
-    padding-bottom: calc(78px + env(safe-area-inset-bottom));
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
     overscroll-behavior-y: none;
     -webkit-font-smoothing: antialiased;
+    position: relative;
 }
+/* Soft colour blooms sit behind everything so the glass has something to pick up. */
+body::before {
+    content: ''; position: fixed; inset: -10%; z-index: -1; pointer-events: none;
+    background:
+        radial-gradient(38vmax 30vmax at 12% -4%, var(--blob-1), transparent 62%),
+        radial-gradient(34vmax 28vmax at 96% 12%, var(--blob-2), transparent 60%),
+        radial-gradient(40vmax 32vmax at 46% 104%, var(--blob-3), transparent 62%);
+    opacity: .40; filter: blur(28px);
+}
+:root[data-theme="dark"] body::before { opacity: .55; }
+
 .container {
     max-width: var(--maxw); margin: 0 auto;
     padding: 0 max(12px, env(safe-area-inset-left)) 12px max(12px, env(safe-area-inset-right));
 }
-.hero-inner {
-    position: relative; z-index: 1;
-    max-width: var(--maxw); margin: 0 auto;
-    padding: 0 max(4px, env(safe-area-inset-left)) 0 max(4px, env(safe-area-inset-right));
-}
 ::selection { background: var(--tint-blue); }
+
+/* Shared glass recipe: translucent fill, hairline edge, specular top,
+   and an angular sheen across the upper-left shoulder. */
+.glass {
+    position: relative;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
+    backdrop-filter: blur(var(--blur)) saturate(var(--sat));
+    border: 1px solid var(--edge);
+    box-shadow: var(--sh-md), inset 0 1px 0 var(--spec), inset 0 -1px 0 var(--hair);
+}
+.glass::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(148deg, var(--sheen) 0%, transparent 38%, transparent 72%, var(--sheen) 100%);
+    opacity: .8;
+}
+.glass > * { position: relative; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .glass { background: var(--glass-solid); }
+}
 
 /* ============================================================
    Header
    ============================================================ */
 .hero {
     position: relative; overflow: hidden;
-    margin: 0 0 14px; padding: calc(14px + env(safe-area-inset-top)) 12px 16px;
-    border-radius: 0 0 var(--r-xl) var(--r-xl);
-    background: linear-gradient(135deg, var(--hdr-1), var(--hdr-2) 55%, var(--hdr-3));
+    margin: 0 0 14px; padding: calc(14px + env(safe-area-inset-top)) 12px 18px;
+    border-radius: 0 0 var(--r-2xl) var(--r-2xl);
+    background: linear-gradient(142deg, var(--hdr-1), var(--hdr-2) 52%, var(--hdr-3));
     color: #fff; box-shadow: var(--sh-md);
 }
+/* Angular specular sweep across the header glass. */
 .hero::after {
     content: ''; position: absolute; inset: 0; pointer-events: none;
     background:
-        radial-gradient(220px 120px at 88% -20%, rgba(255,255,255,.22), transparent 70%),
-        radial-gradient(180px 140px at 8% 120%, rgba(255,255,255,.10), transparent 70%);
+        linear-gradient(112deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.05) 26%, transparent 48%),
+        radial-gradient(240px 130px at 92% -30%, rgba(255,255,255,.30), transparent 70%);
 }
-.hero-top { position: relative; z-index: 1; display: flex; align-items: center; gap: 11px; }
+.hero-inner {
+    position: relative; z-index: 1;
+    max-width: var(--maxw); margin: 0 auto;
+    padding: 0 max(4px, env(safe-area-inset-left)) 0 max(4px, env(safe-area-inset-right));
+}
+.hero-top { display: flex; align-items: center; gap: 11px; }
 .brand-mark {
-    width: 42px; height: 42px; flex-shrink: 0; border-radius: 13px;
+    width: 44px; height: 44px; flex-shrink: 0; border-radius: 15px;
     display: flex; align-items: center; justify-content: center;
-    font-family: var(--num); font-weight: 800; font-size: 17px; letter-spacing: -.5px;
-    background: linear-gradient(160deg, rgba(255,255,255,.30), rgba(255,255,255,.10));
-    border: 1px solid rgba(255,255,255,.28);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
+    font-family: var(--num); font-weight: 800; font-size: 17px; letter-spacing: -.6px;
+    background: linear-gradient(155deg, rgba(255,255,255,.38), rgba(255,255,255,.08));
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    border: 1px solid rgba(255,255,255,.34);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 4px 12px rgba(0,0,0,.16);
 }
 .brand-text { min-width: 0; flex: 1; }
 .brand-text h1 {
-    margin: 0; font-size: 18px; font-weight: 800; letter-spacing: -.3px;
+    margin: 0; font-size: 18.5px; font-weight: 800; letter-spacing: -.4px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
-.brand-text p { margin: 1px 0 0; font-size: 11.5px; opacity: .72; font-weight: 500; }
+.brand-text p { margin: 1px 0 0; font-size: 11.5px; opacity: .74; font-weight: 500; }
 .hero-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .icon-btn {
-    width: 36px; height: 36px; border-radius: 12px; flex-shrink: 0;
+    width: 38px; height: 38px; border-radius: 13px; flex-shrink: 0;
     display: inline-flex; align-items: center; justify-content: center;
-    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.20);
-    color: #fff; font-size: 16px; cursor: pointer; transition: transform .15s var(--ease), background .2s;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    color: #fff; cursor: pointer;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+    transition: transform .16s var(--ease), background .2s;
 }
-.icon-btn:active { transform: scale(.9); background: rgba(255,255,255,.26); }
+.icon-btn:active { transform: scale(.9); background: rgba(255,255,255,.3); }
 .sync-status {
-    position: relative; z-index: 1;
-    display: inline-flex; align-items: center; gap: 6px; margin-top: 12px;
+    display: inline-flex; align-items: center; gap: 6px; margin-top: 13px;
     font-size: 11px; font-weight: 700; letter-spacing: .2px;
-    padding: 5px 11px 5px 9px; border-radius: 999px;
-    background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.18);
+    padding: 6px 12px 6px 10px; border-radius: 999px;
+    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.22);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.3);
 }
 .sync-status .dot { width: 7px; height: 7px; border-radius: 50%; background: #cbd5e1; flex-shrink: 0; }
-.sync-status.online { background: rgba(34,197,94,.24); border-color: rgba(134,239,172,.35); }
-.sync-status.online .dot { background: #4ade80; box-shadow: 0 0 0 0 rgba(74,222,128,.7); animation: pulse 2.4s infinite; }
-.sync-status.offline { background: rgba(245,158,11,.26); border-color: rgba(253,224,71,.35); }
+.sync-status.online { background: rgba(34,197,94,.28); border-color: rgba(134,239,172,.4); }
+.sync-status.online .dot { background: #4ade80; animation: pulse 2.4s infinite; }
+.sync-status.offline { background: rgba(245,158,11,.3); border-color: rgba(253,224,71,.4); }
 .sync-status.offline .dot { background: #fbbf24; }
 @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(74,222,128,.6); } 70% { box-shadow: 0 0 0 7px rgba(74,222,128,0); } 100% { box-shadow: 0 0 0 0 rgba(74,222,128,0); } }
 
 /* ============================================================
-   Tab bar
+   Floating glass tab dock
    ============================================================ */
 .tabbar {
-    position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
-    display: flex; gap: 2px; max-width: var(--maxw); margin: 0 auto;
-    padding: 6px max(6px, env(safe-area-inset-left)) calc(6px + env(safe-area-inset-bottom)) max(6px, env(safe-area-inset-right));
+    position: fixed; z-index: 100;
+    left: 50%; transform: translateX(-50%);
+    bottom: calc(11px + env(safe-area-inset-bottom));
+    width: min(calc(100% - 22px), 560px);
+    display: flex; gap: 3px; padding: 7px;
+    border-radius: var(--r-2xl);
     background: var(--glass);
-    -webkit-backdrop-filter: saturate(180%) blur(18px);
-    backdrop-filter: saturate(180%) blur(18px);
-    border-top: 1px solid var(--border);
-    box-shadow: 0 -6px 24px rgba(15,23,42,.07);
+    -webkit-backdrop-filter: blur(30px) saturate(200%);
+    backdrop-filter: blur(30px) saturate(200%);
+    border: 1px solid var(--edge);
+    box-shadow: var(--sh-lg), inset 0 1px 0 var(--spec);
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .tabbar { background: var(--glass-solid); }
 }
 .tabbar button {
     position: relative; flex: 1; min-height: var(--tap);
-    background: none; border: none; border-radius: var(--r);
-    padding: 7px 2px 6px; font-family: inherit;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+    background: none; border: none; border-radius: var(--r-lg);
+    padding: 7px 2px; font-family: inherit;
     font-size: 10.5px; font-weight: 700; letter-spacing: .1px;
     color: var(--muted); cursor: pointer;
-    transition: color .2s, background .2s, transform .15s var(--ease);
+    transition: color .22s, background .22s, transform .16s var(--ease);
 }
-.tabbar button .ico { display: block; font-size: 19px; line-height: 1.15; margin-bottom: 2px; transition: transform .25s var(--ease); }
+.tabbar button .i { width: 21px; height: 21px; vertical-align: 0; transition: transform .26s var(--ease); }
 .tabbar button:active { transform: scale(.94); }
-.tabbar button.active { color: var(--primary); background: var(--tint-neutral); }
-.tabbar button.active .ico { transform: translateY(-1px) scale(1.1); }
-.tabbar button.active::before {
-    content: ''; position: absolute; top: 3px; left: 50%; transform: translateX(-50%);
-    width: 20px; height: 3px; border-radius: 3px;
-    background: linear-gradient(90deg, var(--strong), var(--strong-2));
+.tabbar button.active {
+    color: var(--strong-fg);
+    background: linear-gradient(150deg, var(--strong-2), var(--strong));
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--strong-2) 42%, transparent), inset 0 1px 0 rgba(255,255,255,.35);
 }
+.tabbar button.active .i { transform: translateY(-1px) scale(1.06); }
 
 /* ============================================================
    Cards & typography
    ============================================================ */
 .card {
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--r-lg); padding: 16px; margin-bottom: 12px;
-    box-shadow: var(--sh-sm);
+    position: relative;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
+    backdrop-filter: blur(var(--blur)) saturate(var(--sat));
+    border: 1px solid var(--edge);
+    border-radius: var(--r-xl); padding: 17px; margin-bottom: 12px;
+    box-shadow: var(--sh-md), inset 0 1px 0 var(--spec);
+}
+.card::before {
+    content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+    background: linear-gradient(148deg, var(--sheen) 0%, transparent 40%);
+}
+.card > * { position: relative; }
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .card { background: var(--glass-solid); }
 }
 .card h3 {
-    display: flex; align-items: center; gap: 8px;
-    margin: 0 0 13px; font-size: 15px; font-weight: 800; letter-spacing: -.2px; color: var(--text);
+    display: flex; align-items: center; gap: 9px;
+    margin: 0 0 13px; font-size: 15.5px; font-weight: 800; letter-spacing: -.25px; color: var(--text);
 }
+/* Angular accent notch instead of a plain bar. */
 .card h3::before {
-    content: ''; width: 4px; height: 15px; border-radius: 3px; flex-shrink: 0;
+    content: ''; width: 5px; height: 17px; flex-shrink: 0;
     background: linear-gradient(180deg, var(--strong-2), var(--strong));
+    clip-path: polygon(0 0, 100% 12%, 100% 100%, 0 88%);
+    border-radius: 2px;
 }
+.card h3 .i { color: var(--strong-2); }
 label {
     display: block; font-size: 11px; font-weight: 700; margin-bottom: 6px;
     color: var(--muted); text-transform: uppercase; letter-spacing: .5px;
 }
 .meta { font-size: 12.5px; color: var(--muted); }
 .hint { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.5; }
-.empty { text-align: center; padding: 34px 16px; color: var(--muted); }
-.empty .big { font-size: 40px; margin-bottom: 10px; opacity: .85; }
+.empty { text-align: center; padding: 30px 16px; color: var(--muted); }
+.empty .big { margin-bottom: 12px; }
+.empty .big .i { width: 46px; height: 46px; color: var(--strong-2); opacity: .55; }
 
-.tab-panel { animation: riseIn .34s var(--ease) both; }
-@keyframes riseIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+.tab-panel { animation: riseIn .36s var(--ease) both; }
+@keyframes riseIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+
+/* ============================================================
+   Icons
+   ============================================================ */
+.i { width: 20px; height: 20px; flex-shrink: 0; display: inline-block; vertical-align: -4px; }
+.i-xs { width: 14px; height: 14px; vertical-align: -2px; }
+.i-sm { width: 16px; height: 16px; vertical-align: -3px; }
+.i-lg { width: 24px; height: 24px; vertical-align: -5px; }
+.i-king { color: var(--gold); }
+.i-joker { color: var(--violet); }
+.i-cross { color: var(--red); }
+.i-stack { position: relative; display: inline-block; width: 20px; height: 20px; vertical-align: -4px; flex-shrink: 0; }
+.i-stack.i-sm { width: 16px; height: 16px; vertical-align: -3px; }
+.i-stack .i { position: absolute; inset: 0; width: 100%; height: 100%; vertical-align: 0; }
 
 /* ============================================================
    Form controls
    ============================================================ */
 input, select, textarea {
     width: 100%; padding: 12px; font-family: inherit;
-    border: 1.5px solid var(--border); border-radius: var(--r-sm);
+    border: 1px solid var(--hair); border-radius: var(--r);
     font-size: 16px; /* 16px keeps iOS from zooming on focus */
     background: var(--field); color: var(--text);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
+    box-shadow: inset 0 1px 2px rgba(13,21,38,.05);
     transition: border-color .18s, background .18s, box-shadow .18s;
 }
-input::placeholder, textarea::placeholder { color: var(--muted); opacity: .8; }
+input::placeholder, textarea::placeholder { color: var(--muted); opacity: .85; }
 input:focus, select:focus, textarea:focus {
-    outline: none; border-color: var(--strong-2); background: var(--card);
-    box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--strong-2) 18%, transparent);
+    outline: none; border-color: var(--strong-2); background: var(--field-on);
+    box-shadow: 0 0 0 3.5px color-mix(in srgb, var(--strong-2) 20%, transparent);
 }
 .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 
 .seg2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .seg2 button {
     min-height: 42px; padding: 10px 4px; font-family: inherit;
-    border: 1.5px solid var(--border); border-radius: var(--r-sm);
+    border: 1px solid var(--hair); border-radius: var(--r);
     background: var(--field); color: var(--muted);
+    -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
     font-weight: 700; font-size: 13.5px; cursor: pointer;
+    box-shadow: inset 0 1px 0 var(--spec);
     transition: all .18s var(--ease);
 }
 .seg2 button:active { transform: scale(.97); }
-.seg2 button.on-t1 { background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: 0 3px 10px color-mix(in srgb, var(--blue) 35%, transparent); }
-.seg2 button.on-t2 { background: var(--red); color: #fff; border-color: var(--red); box-shadow: 0 3px 10px color-mix(in srgb, var(--red) 35%, transparent); }
-.seg2 button.on-made { background: var(--green); color: #fff; border-color: var(--green); }
-.seg2 button.on-lost { background: var(--red); color: #fff; border-color: var(--red); }
+.seg2 button.on-t1 { background: linear-gradient(150deg, color-mix(in srgb, var(--blue) 88%, #fff), var(--blue)); color: #fff; border-color: transparent; box-shadow: 0 4px 13px color-mix(in srgb, var(--blue) 42%, transparent), inset 0 1px 0 rgba(255,255,255,.35); }
+.seg2 button.on-t2 { background: linear-gradient(150deg, color-mix(in srgb, var(--red) 88%, #fff), var(--red)); color: #fff; border-color: transparent; box-shadow: 0 4px 13px color-mix(in srgb, var(--red) 42%, transparent), inset 0 1px 0 rgba(255,255,255,.35); }
+.seg2 button.on-made { background: linear-gradient(150deg, color-mix(in srgb, var(--green) 88%, #fff), var(--green)); color: #fff; border-color: transparent; }
+.seg2 button.on-lost { background: linear-gradient(150deg, color-mix(in srgb, var(--red) 88%, #fff), var(--red)); color: #fff; border-color: transparent; }
 
 .btn {
-    width: 100%; min-height: var(--tap); padding: 13px; font-family: inherit;
-    border: none; border-radius: var(--r);
-    background: linear-gradient(135deg, var(--strong), var(--strong-2));
+    position: relative; overflow: hidden;
+    width: 100%; min-height: var(--tap); padding: 13px 16px; font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center; gap: 9px;
+    border: 1px solid transparent; border-radius: var(--r-lg);
+    background: linear-gradient(150deg, var(--strong-2), var(--strong));
     color: var(--strong-fg); font-size: 15px; font-weight: 800; letter-spacing: .1px;
-    cursor: pointer; box-shadow: var(--sh-sm);
-    transition: transform .14s var(--ease), box-shadow .18s, filter .18s;
+    cursor: pointer;
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--strong) 34%, transparent), inset 0 1px 0 rgba(255,255,255,.34);
+    transition: transform .15s var(--ease), box-shadow .2s, filter .2s;
 }
-.btn:active { transform: scale(.975); filter: brightness(1.06); }
-.btn.green { background: linear-gradient(135deg, #15803d, #22c55e); }
-.btn.blue { background: linear-gradient(135deg, #1d4ed8, #3b82f6); }
-.btn.danger { background: linear-gradient(135deg, #be123c, #f43f5e); }
+/* Angular specular streak across the button face. */
+.btn::after {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(112deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.06) 30%, transparent 52%);
+}
+.btn:active { transform: scale(.975); filter: brightness(1.07); }
+.btn .i { position: relative; }
+.btn.green { background: linear-gradient(150deg, #2ecb7c, #13894f); box-shadow: 0 6px 18px rgba(23,160,92,.34), inset 0 1px 0 rgba(255,255,255,.34); }
+.btn.blue { background: linear-gradient(150deg, #4f95ef, #1f52b8); box-shadow: 0 6px 18px rgba(47,111,219,.34), inset 0 1px 0 rgba(255,255,255,.34); }
+.btn.danger { background: linear-gradient(150deg, #f4657f, #c02444); box-shadow: 0 6px 18px rgba(224,64,95,.34), inset 0 1px 0 rgba(255,255,255,.34); }
 .btn.subtle {
-    background: var(--tint-neutral); color: var(--primary);
-    border: 1.5px solid var(--border); box-shadow: none;
+    background: var(--field); color: var(--primary);
+    border: 1px solid var(--hair);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    box-shadow: inset 0 1px 0 var(--spec);
 }
-.btn.small { width: auto; min-height: 34px; padding: 7px 13px; font-size: 12px; border-radius: var(--r-sm); }
+.btn.subtle::after { background: linear-gradient(112deg, var(--sheen) 0%, transparent 46%); }
+.btn.small { width: auto; min-height: 34px; padding: 7px 13px; font-size: 12px; gap: 6px; border-radius: var(--r-sm); }
+.btn.small .i { width: 15px; height: 15px; }
 
 .add-row { display: flex; gap: 8px; }
 .add-row input { flex: 1; }
 .add-row button { width: auto; padding: 0 20px; flex-shrink: 0; }
 
 .chip-toggle {
-    display: inline-flex; align-items: center; gap: 5px; min-height: 36px;
+    display: inline-flex; align-items: center; gap: 6px; min-height: 36px;
     padding: 7px 13px; border-radius: 999px; font-family: inherit;
-    border: 1.5px solid var(--border); background: var(--card);
-    font-size: 13px; font-weight: 600; color: var(--muted); cursor: pointer;
+    border: 1px solid var(--hair); background: var(--field);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    font-size: 13px; font-weight: 650; color: var(--muted); cursor: pointer;
+    box-shadow: inset 0 1px 0 var(--spec);
     transition: all .18s var(--ease);
 }
 .chip-toggle:active { transform: scale(.96); }
-.chip-toggle.on { background: var(--tint-green); border-color: var(--green); color: var(--on-green); }
+.chip-toggle.on { background: var(--tint-green); border-color: color-mix(in srgb, var(--green) 55%, transparent); color: var(--on-green); }
 
 /* ============================================================
    Avatars
    ============================================================ */
 .avi {
-    width: 30px; height: 30px; border-radius: 10px; flex-shrink: 0;
+    width: 31px; height: 31px; border-radius: 11px; flex-shrink: 0;
     display: inline-flex; align-items: center; justify-content: center;
     font-family: var(--num); font-size: 11.5px; font-weight: 800; color: #fff;
-    letter-spacing: -.2px; box-shadow: var(--sh-sm);
+    letter-spacing: -.2px;
+    box-shadow: 0 3px 9px rgba(13,21,38,.2), inset 0 1px 0 rgba(255,255,255,.4);
 }
-.avi.sm { width: 25px; height: 25px; border-radius: 8px; font-size: 10px; }
-.avi.lg { width: 54px; height: 54px; border-radius: 18px; font-size: 19px; }
+.avi.sm { width: 26px; height: 26px; border-radius: 9px; font-size: 10px; }
+.avi.lg { width: 58px; height: 58px; border-radius: 20px; font-size: 20px; }
 
 /* ============================================================
    Roster list
@@ -303,56 +421,78 @@ input:focus, select:focus, textarea:focus {
 .roster-list { display: flex; flex-direction: column; }
 .roster-item {
     display: flex; align-items: center; gap: 9px;
-    padding: 9px 0; border-bottom: 1px solid var(--border-2);
+    padding: 9px 0; border-bottom: 1px solid var(--hair);
 }
 .roster-item:last-child { border-bottom: none; }
-.roster-item.picked { background: color-mix(in srgb, var(--tint-green) 70%, transparent); border-radius: var(--r-sm); padding-left: 8px; padding-right: 8px; margin: 0 -8px; border-bottom-color: transparent; }
-.roster-item .lb-sub { margin-left: auto; padding-right: 4px; }
+.roster-item.picked {
+    background: var(--tint-green); border-radius: var(--r);
+    padding-left: 9px; padding-right: 9px; margin: 0 -9px;
+    border-bottom-color: transparent;
+}
 .roster-item .rname {
     flex: 1; min-width: 0; font-weight: 650; font-size: 14.5px;
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
+.roster-item .lb-sub { margin-left: auto; padding-right: 4px; }
 .guest-tag {
     font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px;
     background: var(--tint-amber); color: var(--on-amber);
-    padding: 2px 7px; border-radius: 999px; flex-shrink: 0;
+    padding: 2px 8px; border-radius: 999px; flex-shrink: 0;
 }
 .mini-toggle {
-    min-height: 32px; padding: 5px 12px; font-family: inherit;
-    border: 1.5px solid var(--border); border-radius: 999px;
+    display: inline-flex; align-items: center; gap: 5px;
+    min-height: 33px; padding: 5px 12px; font-family: inherit;
+    border: 1px solid var(--hair); border-radius: 999px;
     background: var(--field); font-size: 11.5px; font-weight: 700;
     color: var(--muted); cursor: pointer; flex-shrink: 0;
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 var(--spec);
     transition: all .18s var(--ease);
 }
 .mini-toggle:active { transform: scale(.95); }
-.mini-toggle.on { background: var(--tint-amber); border-color: var(--accent); color: var(--on-amber); }
-.mini-toggle.go.on { background: var(--tint-green); border-color: var(--green); color: var(--on-green); }
-.mini-toggle.sel.on { background: linear-gradient(135deg, var(--strong), var(--strong-2)); border-color: transparent; color: var(--strong-fg); }
+.mini-toggle .i { width: 14px; height: 14px; vertical-align: 0; }
+.mini-toggle.on { background: var(--tint-amber); border-color: color-mix(in srgb, var(--accent) 55%, transparent); color: var(--on-amber); }
+.mini-toggle.go.on { background: var(--tint-green); border-color: color-mix(in srgb, var(--green) 55%, transparent); color: var(--on-green); }
+.mini-toggle.sel.on {
+    background: linear-gradient(150deg, var(--strong-2), var(--strong));
+    border-color: transparent; color: var(--strong-fg);
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--strong-2) 38%, transparent), inset 0 1px 0 rgba(255,255,255,.3);
+}
 .mini-btn {
-    width: 34px; height: 34px; flex-shrink: 0; font-family: inherit;
-    border: 1.5px solid var(--border); border-radius: var(--r-sm);
-    background: var(--field); cursor: pointer; font-size: 15px; color: var(--blue);
+    width: 35px; height: 35px; flex-shrink: 0; font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center;
+    border: 1px solid var(--hair); border-radius: var(--r-sm);
+    background: var(--field); cursor: pointer; color: var(--blue);
+    -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px);
+    box-shadow: inset 0 1px 0 var(--spec);
     transition: all .18s var(--ease);
 }
 .mini-btn:active { transform: scale(.92); }
-.mini-btn.danger { color: var(--red); font-weight: 800; }
+.mini-btn .i { width: 16px; height: 16px; vertical-align: 0; }
+.mini-btn.danger { color: var(--red); }
 .guest-check {
     display: inline-flex; align-items: center; gap: 9px; margin-top: 12px;
     font-size: 13.5px; font-weight: 650; color: var(--text);
     text-transform: none; letter-spacing: 0; cursor: pointer;
 }
 .guest-check .box {
-    width: 22px; height: 22px; border: 1.5px solid var(--border); border-radius: 7px;
+    width: 23px; height: 23px; border: 1px solid var(--hair); border-radius: 8px;
+    background: var(--field);
     display: inline-flex; align-items: center; justify-content: center;
-    color: #fff; font-size: 13px; transition: all .18s var(--ease);
+    color: #fff; transition: all .18s var(--ease);
 }
-.guest-check .box.on { background: var(--accent); border-color: var(--accent); }
+.guest-check .box .i { width: 15px; height: 15px; vertical-align: 0; }
+.guest-check .box.on {
+    background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 85%, #fff), var(--accent));
+    border-color: transparent;
+    box-shadow: 0 3px 9px color-mix(in srgb, var(--accent) 42%, transparent);
+}
 
 /* ============================================================
    Badges
    ============================================================ */
 .badge {
-    display: inline-block; padding: 3px 9px; border-radius: 999px;
+    display: inline-block; padding: 3px 10px; border-radius: 999px;
     font-size: 10.5px; font-weight: 800; letter-spacing: .3px;
     margin: 2px 4px 2px 0; background: var(--tint-neutral); color: var(--muted);
 }
@@ -366,21 +506,33 @@ input:focus, select:focus, textarea:focus {
    ============================================================ */
 .podium {
     position: relative; overflow: hidden;
-    background: var(--card); border: 1px solid var(--border);
-    border-radius: var(--r-lg); padding: 16px 14px 14px; margin-bottom: 12px;
-    box-shadow: var(--sh-sm);
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
+    backdrop-filter: blur(var(--blur)) saturate(var(--sat));
+    border: 1px solid var(--edge);
+    border-radius: var(--r-xl); padding: 17px 14px 15px; margin-bottom: 12px;
+    box-shadow: var(--sh-md), inset 0 1px 0 var(--spec);
 }
 .podium::before {
     content: ''; position: absolute; inset: 0; pointer-events: none;
-    background: radial-gradient(320px 150px at 50% -30%, color-mix(in srgb, var(--gold) 22%, transparent), transparent 72%);
+    background:
+        linear-gradient(148deg, var(--sheen) 0%, transparent 40%),
+        radial-gradient(330px 160px at 50% -34%, color-mix(in srgb, var(--gold) 30%, transparent), transparent 72%);
 }
+.podium > * { position: relative; }
 .podium-title {
-    position: relative; text-align: center; font-size: 10.5px; font-weight: 800;
+    display: flex; align-items: center; justify-content: center; gap: 7px;
+    font-size: 10.5px; font-weight: 800;
     text-transform: uppercase; letter-spacing: 1.1px; color: var(--muted); margin-bottom: 14px;
 }
-.podium-row { position: relative; display: flex; align-items: flex-end; justify-content: center; gap: 8px; }
-.pod { flex: 1; max-width: 120px; text-align: center; }
-.pod .crown { font-size: 19px; line-height: 1; margin-bottom: 3px; }
+.podium-title .i { width: 16px; height: 16px; vertical-align: 0; color: var(--gold); }
+.podium-row { display: flex; align-items: flex-end; justify-content: center; gap: 8px; }
+.pod { flex: 1; max-width: 124px; text-align: center; }
+.pod .crown { height: 22px; margin-bottom: 3px; }
+.pod .crown .i { width: 21px; height: 21px; vertical-align: 0; }
+.pod.p1 .crown .i { color: var(--gold); }
+.pod.p2 .crown .i { color: #a9b4c4; }
+.pod.p3 .crown .i { color: #c98d5a; }
 .pod .avi { margin: 0 auto 7px; }
 .pod .pname {
     font-size: 12.5px; font-weight: 750; line-height: 1.25;
@@ -389,24 +541,16 @@ input:focus, select:focus, textarea:focus {
 .pod .ppts { font-family: var(--num); font-size: 17px; font-weight: 850; letter-spacing: -.4px; margin-top: 1px; }
 .pod .psub { font-size: 10.5px; color: var(--muted); font-weight: 600; }
 .pod .plinth {
-    margin-top: 8px; border-radius: 12px 12px 6px 6px;
+    margin-top: 8px; border-radius: 14px 14px 7px 7px;
     display: flex; align-items: flex-start; justify-content: center;
-    padding-top: 6px; font-family: var(--num); font-weight: 850; font-size: 14px;
+    padding-top: 7px; font-family: var(--num); font-weight: 850; font-size: 14px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 6px 16px rgba(13,21,38,.14);
 }
-.pod.p1 .plinth { height: 54px; background: linear-gradient(180deg, #fbe38b, #e0a80b); color: #6a4a04; }
-.pod.p2 .plinth { height: 40px; background: linear-gradient(180deg, #e8ecf2, #b9c2ce); color: #4a5361; }
-.pod.p3 .plinth { height: 32px; background: linear-gradient(180deg, #f0c49a, #cd8f56); color: #63380f; }
-.pod.p1 .avi { width: 54px; height: 54px; border-radius: 18px; font-size: 19px; box-shadow: 0 6px 18px color-mix(in srgb, var(--gold) 45%, transparent); }
+.pod.p1 .plinth { height: 56px; background: linear-gradient(168deg, #ffe89a, #d99f0d); color: #6a4a04; }
+.pod.p2 .plinth { height: 42px; background: linear-gradient(168deg, #f0f3f8, #b3bdca); color: #46505e; }
+.pod.p3 .plinth { height: 33px; background: linear-gradient(168deg, #f6cda3, #c9884f); color: #5f350e; }
+.pod.p1 .avi { width: 58px; height: 58px; border-radius: 20px; font-size: 20px; box-shadow: 0 8px 22px color-mix(in srgb, var(--gold) 48%, transparent), inset 0 1px 0 rgba(255,255,255,.45); }
 .pod.p1 .ppts { font-size: 20px; }
-
-/* Legacy single-leader banner (kept for compatibility) */
-.winner-banner {
-    background: linear-gradient(120deg, var(--tint-amber), var(--card));
-    border: 1px solid color-mix(in srgb, var(--gold) 35%, var(--border));
-    border-radius: var(--r-lg); padding: 14px; text-align: center; margin-bottom: 12px;
-}
-.winner-banner .wt { font-size: 11px; color: var(--on-amber); font-weight: 800; text-transform: uppercase; letter-spacing: .6px; }
-.winner-banner .wn { font-size: 20px; font-weight: 850; color: var(--text); margin-top: 4px; }
 
 /* ============================================================
    Stat tiles
@@ -414,16 +558,25 @@ input:focus, select:focus, textarea:focus {
 /* auto-fit sizes off the real container width, so this reflows on any screen */
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; }
 .stat-tile {
-    background: var(--card-2); border: 1px solid var(--border-2);
-    border-radius: var(--r); padding: 12px 13px;
+    position: relative; overflow: hidden;
+    background: var(--glass-2); border: 1px solid var(--hair);
+    border-radius: var(--r-lg); padding: 12px 14px;
+    box-shadow: inset 0 1px 0 var(--spec);
 }
+.stat-tile::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(140deg, var(--sheen), transparent 52%);
+}
+.stat-tile > * { position: relative; }
 .stat-tile .sv {
+    display: flex; align-items: center; gap: 6px;
     font-family: var(--num); font-size: 23px; font-weight: 850;
     letter-spacing: -.8px; line-height: 1.1;
 }
+.stat-tile .sv .i { width: 21px; height: 21px; vertical-align: 0; }
 .stat-tile .sl {
     font-size: 10.5px; font-weight: 700; color: var(--muted);
-    text-transform: uppercase; letter-spacing: .5px; margin-top: 3px;
+    text-transform: uppercase; letter-spacing: .5px; margin-top: 4px;
 }
 .stat-tile.blue .sv { color: var(--blue); }
 .stat-tile.green .sv { color: var(--green); }
@@ -433,16 +586,16 @@ input:focus, select:focus, textarea:focus {
 /* ============================================================
    Leaderboard list rows
    ============================================================ */
-.lb-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--border-2); }
+.lb-row { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--hair); }
 .lb-row:last-child { border-bottom: none; }
 .lb-rank {
-    width: 25px; height: 25px; border-radius: 9px; background: var(--tint-neutral); color: var(--muted);
+    width: 26px; height: 26px; border-radius: 9px; background: var(--tint-neutral); color: var(--muted);
     display: inline-flex; align-items: center; justify-content: center;
     font-family: var(--num); font-weight: 850; font-size: 12px; flex-shrink: 0;
 }
-.lb-rank.r1 { background: linear-gradient(160deg, #fde68a, #e0a80b); color: #5f4204; }
-.lb-rank.r2 { background: linear-gradient(160deg, #eef1f5, #b9c2ce); color: #414b58; }
-.lb-rank.r3 { background: linear-gradient(160deg, #f4cda6, #cd8f56); color: #5b330d; }
+.lb-rank.r1 { background: linear-gradient(160deg, #ffe89a, #d99f0d); color: #5f4204; box-shadow: inset 0 1px 0 rgba(255,255,255,.5); }
+.lb-rank.r2 { background: linear-gradient(160deg, #f0f3f8, #b3bdca); color: #414b58; box-shadow: inset 0 1px 0 rgba(255,255,255,.6); }
+.lb-rank.r3 { background: linear-gradient(160deg, #f6cda3, #c9884f); color: #5b330d; box-shadow: inset 0 1px 0 rgba(255,255,255,.5); }
 .lb-name { flex: 1; font-weight: 650; font-size: 14.5px; }
 .lb-pts { font-family: var(--num); font-weight: 850; font-size: 16px; letter-spacing: -.3px; }
 .lb-sub { font-size: 11px; color: var(--muted); font-weight: 600; }
@@ -452,44 +605,46 @@ input:focus, select:focus, textarea:focus {
    ============================================================ */
 .lb-sort, .lb-view { display: flex; align-items: center; gap: 7px; font-size: 12px; color: var(--muted); margin-bottom: 12px; flex-wrap: wrap; }
 .lb-view {
-    gap: 4px; padding: 4px; border-radius: var(--r);
-    background: var(--card-2); border: 1px solid var(--border-2);
+    gap: 4px; padding: 4px; border-radius: var(--r-lg);
+    background: var(--glass-2); border: 1px solid var(--hair);
+    box-shadow: inset 0 1px 0 var(--spec);
 }
 .lb-sort button, .lb-view button {
-    flex: 1; min-height: 34px; padding: 6px 8px; font-family: inherit;
-    border: none; border-radius: var(--r-sm); background: transparent;
+    flex: 1 1 128px; min-height: 34px; padding: 6px 8px; font-family: inherit;
+    display: inline-flex; align-items: center; justify-content: center; gap: 5px;
+    border: none; border-radius: var(--r); background: transparent;
     font-weight: 700; font-size: 11.5px; color: var(--muted); cursor: pointer;
-    white-space: nowrap; transition: all .18s var(--ease);
+    white-space: nowrap; transition: all .2s var(--ease);
 }
-.lb-sort button { flex: 0 0 auto; border: 1.5px solid var(--border); background: var(--field); }
+.lb-view button .i { width: 15px; height: 15px; vertical-align: 0; }
+.lb-sort button { flex: 0 0 auto; border: 1px solid var(--hair); background: var(--field); }
 .lb-view button.on, .lb-sort button.on {
-    background: linear-gradient(135deg, var(--strong), var(--strong-2));
-    color: var(--strong-fg); box-shadow: var(--sh-sm);
+    background: linear-gradient(150deg, var(--strong-2), var(--strong));
+    color: var(--strong-fg);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--strong-2) 36%, transparent), inset 0 1px 0 rgba(255,255,255,.3);
 }
 .lb-table-wrap {
     overflow-x: auto; -webkit-overflow-scrolling: touch;
-    margin: 0 -16px; padding: 0 16px;
+    margin: 0 -17px; padding: 0 17px;
     scrollbar-width: thin;
 }
 .lb-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
 .lb-table th, .lb-table td {
     padding: 9px 6px; text-align: center;
-    border-bottom: 1px solid var(--border-2); white-space: nowrap;
+    border-bottom: 1px solid var(--hair); white-space: nowrap;
 }
 .lb-table thead th {
-    position: sticky; top: 0; z-index: 3;
-    background: var(--card);
     font-size: 9.5px; text-transform: uppercase; letter-spacing: .5px;
     color: var(--muted); font-weight: 800; vertical-align: middle;
 }
+.lb-table thead th .i { vertical-align: 0; }
 .lb-table th.col-name, .lb-table td.col-name {
-    position: sticky; left: -16px; z-index: 2;
+    position: sticky; left: -17px; z-index: 2;
     text-align: left; white-space: normal;
-    background: var(--card); padding-left: 0;
+    background: var(--glass-solid); padding-left: 0;
     min-width: 154px; max-width: 190px;
-    box-shadow: 8px 0 8px -8px rgba(15,23,42,.25);
+    box-shadow: 10px 0 10px -10px rgba(13,21,38,.3);
 }
-.lb-table thead th.col-name { z-index: 4; }
 .lb-table td.col-name { font-weight: 650; }
 .lb-table .name-cell { display: flex; align-items: center; gap: 8px; padding-right: 10px; }
 .lb-table .name-cell .nm { min-width: 0; flex: 1; }
@@ -498,10 +653,10 @@ input:focus, select:focus, textarea:focus {
 .lb-table .name-cell .lb-sub { display: block; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lb-table td.lb-pts-cell { font-family: var(--num); font-weight: 850; letter-spacing: -.2px; }
 .lb-table .sorted { background: var(--sorted-bg); }
-.lb-table td.col-name.sorted, .lb-table th.col-name.sorted { background: var(--card); }
+.lb-table td.col-name.sorted, .lb-table th.col-name.sorted { background: var(--glass-solid); }
 .lb-table thead th.sorted { color: var(--primary); }
 .lb-table thead th.sortable { cursor: pointer; user-select: none; -webkit-user-select: none; }
-.lb-table .sort-caret { font-size: 9px; }
+.lb-table .sort-caret { display: inline-block; width: 10px; height: 10px; vertical-align: 0; }
 .lb-table tbody tr:last-child td { border-bottom: none; }
 .wk-table th, .wk-table td { min-width: 48px; }
 .wk-bonus { color: var(--accent); font-weight: 700; font-size: 11px; margin-left: 1px; }
@@ -512,20 +667,21 @@ input:focus, select:focus, textarea:focus {
    ============================================================ */
 .chart-wrap {
     overflow-x: auto; -webkit-overflow-scrolling: touch;
-    margin: 6px -16px 2px; padding: 0 16px; border-radius: var(--r);
+    margin: 6px -17px 2px; padding: 0 17px; border-radius: var(--r);
 }
 .bump-svg { display: block; }
 .bump-plot { fill: var(--chart-plot); }
 .bump-stripe { fill: var(--chart-stripe); }
 .bump-lead { fill: var(--gold); }
 .bump-path { fill: none; stroke-linecap: round; stroke-linejoin: round; cursor: pointer; transition: opacity .18s ease, stroke-width .18s ease; }
-.bump-grid { stroke: var(--border); stroke-dasharray: 2 4; }
-.bump-vgrid { stroke: var(--border); stroke-dasharray: 2 5; }
+.bump-grid { stroke: var(--hair); stroke-dasharray: 2 4; }
+.bump-vgrid { stroke: var(--hair); stroke-dasharray: 2 5; }
 .bump-axis { fill: var(--muted); font-size: 10px; font-family: inherit; }
 .bump-wk { fill: var(--text); font-size: 11px; font-weight: 700; font-family: inherit; }
 .bump-date { fill: var(--muted); font-size: 9px; font-family: inherit; }
 .bump-rank { fill: var(--muted); font-size: 11px; font-weight: 700; font-family: inherit; }
 .bump-pill-txt { font-family: inherit; font-weight: 700; font-size: 11px; fill: #fff; cursor: pointer; }
+.bump-medal { font-family: var(--num); font-weight: 800; font-size: 9.5px; }
 .bump-dot { cursor: pointer; transition: opacity .18s ease; }
 
 /* ============================================================
@@ -534,34 +690,37 @@ input:focus, select:focus, textarea:focus {
 .matchup { display: flex; align-items: stretch; gap: 8px; margin-top: 12px; }
 .matchup .team {
     flex: 1; position: relative; overflow: hidden;
-    background: var(--card-2); border: 1px solid var(--border-2);
-    border-radius: var(--r); padding: 11px 9px; text-align: center;
+    background: var(--glass-2); border: 1px solid var(--hair);
+    border-radius: var(--r-lg); padding: 12px 9px; text-align: center;
+    box-shadow: inset 0 1px 0 var(--spec);
 }
 .matchup .team::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; }
-.matchup .team.t1::before { background: linear-gradient(90deg, var(--blue), color-mix(in srgb, var(--blue) 55%, transparent)); }
-.matchup .team.t2::before { background: linear-gradient(90deg, var(--red), color-mix(in srgb, var(--red) 55%, transparent)); }
-.matchup .team.win { background: var(--tint-green); border-color: color-mix(in srgb, var(--green) 40%, var(--border)); }
+.matchup .team.t1::before { background: linear-gradient(90deg, var(--blue), color-mix(in srgb, var(--blue) 40%, transparent)); }
+.matchup .team.t2::before { background: linear-gradient(90deg, var(--red), color-mix(in srgb, var(--red) 40%, transparent)); }
+.matchup .team.win { background: var(--tint-green); border-color: color-mix(in srgb, var(--green) 42%, transparent); }
 .matchup .team .tlabel { font-size: 10.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .5px; }
 .matchup .team.t1 .tlabel { color: var(--on-blue); }
 .matchup .team.t2 .tlabel { color: var(--on-red); }
-.matchup .team .tscore { font-family: var(--num); font-size: 27px; font-weight: 850; letter-spacing: -1px; margin: 2px 0 3px; }
+.matchup .team .tscore { font-family: var(--num); font-size: 27px; font-weight: 850; letter-spacing: -1px; margin: 2px 0 4px; }
 .matchup .team .tplayers { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
 .tp {
-    background: var(--card); border: 1px solid var(--border); border-radius: 999px;
-    padding: 2px 9px; font-size: 11.5px; font-weight: 650; color: var(--text-2);
+    background: var(--field-on); border: 1px solid var(--hair); border-radius: 999px;
+    padding: 3px 10px; font-size: 11.5px; font-weight: 650; color: var(--text-2);
     max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    box-shadow: inset 0 1px 0 var(--spec);
 }
 .tp-none { font-size: 12px; color: var(--muted); }
 .matchup .vs {
     align-self: center; flex-shrink: 0; font-size: 10px; font-weight: 800;
     color: var(--muted); letter-spacing: .5px;
-    width: 26px; height: 26px; border-radius: 50%;
+    width: 28px; height: 28px; border-radius: 50%;
     display: flex; align-items: center; justify-content: center;
-    background: var(--card); border: 1px solid var(--border);
+    background: var(--field-on); border: 1px solid var(--hair);
+    box-shadow: inset 0 1px 0 var(--spec);
 }
 .score-caption {
     text-align: center; font-size: 10px; color: var(--muted);
-    margin-top: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
+    margin-top: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px;
 }
 
 /* Week card header */
@@ -570,8 +729,9 @@ input:focus, select:focus, textarea:focus {
 .week-head .wk-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .wk-chip {
     font-family: var(--num); font-size: 12px; font-weight: 850; letter-spacing: -.2px;
-    padding: 4px 10px; border-radius: 999px;
-    background: linear-gradient(135deg, var(--strong), var(--strong-2)); color: var(--strong-fg);
+    padding: 5px 11px; border-radius: 999px;
+    background: linear-gradient(150deg, var(--strong-2), var(--strong)); color: var(--strong-fg);
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--strong-2) 34%, transparent), inset 0 1px 0 rgba(255,255,255,.3);
 }
 .wk-date { font-size: 12.5px; color: var(--muted); font-weight: 650; }
 
@@ -580,7 +740,7 @@ input:focus, select:focus, textarea:focus {
    ============================================================ */
 .past-row {
     display: flex; align-items: center; gap: 8px;
-    padding: 6px 0; border-bottom: 1px solid var(--border-2);
+    padding: 6px 0; border-bottom: 1px solid var(--hair);
 }
 .past-row:last-of-type { border-bottom: none; }
 .past-row .past-name { flex: 1; min-width: 0; font-size: 14px; font-weight: 650; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -595,8 +755,9 @@ input:focus, select:focus, textarea:focus {
 
 /* 12-0 round editor */
 .ko-round {
-    border: 1px solid var(--border); border-radius: var(--r);
-    padding: 12px; margin-bottom: 10px; background: var(--card-2);
+    border: 1px solid var(--hair); border-radius: var(--r-lg);
+    padding: 13px; margin-bottom: 10px; background: var(--glass-2);
+    box-shadow: inset 0 1px 0 var(--spec);
 }
 .ko-head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .ko-jokers { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
@@ -604,30 +765,20 @@ input:focus, select:focus, textarea:focus {
 .lb-badges span { display: inline-flex; align-items: center; gap: 3px; font-size: 13px; font-weight: 700; color: var(--text); }
 
 /* 12-0 rounds summary on a week card */
-.ko-summary { margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 9px; }
+.ko-summary { margin-top: 11px; border-top: 1px dashed var(--hair); padding-top: 10px; }
 .ko-summary-title { font-size: 9.5px; color: var(--muted); font-weight: 800; text-transform: uppercase; letter-spacing: .6px; text-align: center; margin-bottom: 5px; }
 .ko-line { font-size: 13px; display: flex; align-items: center; justify-content: center; gap: 5px; flex-wrap: wrap; margin: 3px 0; }
 .ko-rn { font-weight: 700; color: var(--muted); font-size: 11px; }
 .ko-line .ko-t1 { color: var(--on-blue); font-weight: 750; }
 .ko-line .ko-t2 { color: var(--on-red); font-weight: 750; }
-.ko-lift { display: inline-flex; align-items: center; gap: 3px; color: var(--text); }
-
-/* King Maker / Joker / lifted-Joker outline icons */
-.ic { width: 22px; height: 22px; vertical-align: -6px; flex-shrink: 0; }
-.ic-sm { width: 16px; height: 16px; vertical-align: -3px; }
-.ic-king { color: var(--gold); }
-.ic-joker { color: var(--violet); }
-.ic-cross { color: var(--red); }
-.ic-stack { position: relative; display: inline-block; width: 22px; height: 22px; vertical-align: -6px; flex-shrink: 0; }
-.ic-stack.ic-sm { width: 16px; height: 16px; vertical-align: -3px; }
-.ic-stack .ic { position: absolute; inset: 0; width: 100%; height: 100%; vertical-align: 0; }
+.ko-lift { display: inline-flex; align-items: center; gap: 4px; color: var(--text); }
 
 /* ============================================================
    Data tab
    ============================================================ */
 textarea {
     min-height: 150px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 11.5px; line-height: 1.5; background: var(--card-2);
+    font-size: 11.5px; line-height: 1.5;
 }
 
 /* ============================================================
@@ -636,23 +787,42 @@ textarea {
 .login-overlay {
     position: fixed; inset: 0; z-index: 500; overflow-y: auto;
     background: var(--bg);
-    background-image: radial-gradient(700px 420px at 50% -5%, color-mix(in srgb, var(--hdr-3) 32%, transparent), transparent 70%),
-                      linear-gradient(180deg, var(--bg-b), var(--bg) 55%);
     display: flex; align-items: flex-start; justify-content: center;
     padding: 11vh 16px calc(24px + env(safe-area-inset-bottom));
 }
+.login-overlay::before {
+    content: ''; position: fixed; inset: -10%; z-index: 0; pointer-events: none;
+    background:
+        radial-gradient(38vmax 30vmax at 16% 0%, var(--blob-1), transparent 62%),
+        radial-gradient(34vmax 28vmax at 92% 18%, var(--blob-2), transparent 60%),
+        radial-gradient(40vmax 30vmax at 50% 102%, var(--blob-3), transparent 62%);
+    opacity: .5; filter: blur(30px);
+}
 .login-box {
-    background: var(--card); border: 1px solid var(--border); border-radius: var(--r-xl);
-    padding: 30px 24px 26px; width: 100%; max-width: 380px; text-align: center;
-    box-shadow: var(--sh-lg);
-    animation: riseIn .4s var(--ease) both;
+    position: relative; z-index: 1;
+    background: var(--glass);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    backdrop-filter: blur(28px) saturate(190%);
+    border: 1px solid var(--edge); border-radius: var(--r-2xl);
+    padding: 32px 24px 26px; width: 100%; max-width: 380px; text-align: center;
+    box-shadow: var(--sh-lg), inset 0 1px 0 var(--spec);
+    animation: riseIn .42s var(--ease) both;
+}
+@supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+    .login-box { background: var(--glass-solid); }
 }
 .login-box .logo {
-    width: 60px; height: 60px; margin: 0 auto 14px; border-radius: 20px;
+    position: relative;
+    width: 64px; height: 64px; margin: 0 auto 15px; border-radius: 22px;
     display: flex; align-items: center; justify-content: center;
-    font-family: var(--num); font-size: 23px; font-weight: 850; color: #fff; letter-spacing: -1px;
-    background: linear-gradient(140deg, var(--hdr-2), var(--hdr-3));
-    box-shadow: 0 10px 24px color-mix(in srgb, var(--hdr-3) 45%, transparent);
+    font-family: var(--num); font-size: 24px; font-weight: 850; color: #fff; letter-spacing: -1px;
+    background: linear-gradient(150deg, var(--hdr-3), var(--hdr-1));
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--hdr-2) 48%, transparent), inset 0 1px 0 rgba(255,255,255,.45);
+    overflow: hidden;
+}
+.login-box .logo::after {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(112deg, rgba(255,255,255,.34) 0%, transparent 46%);
 }
 .login-box h2 { margin: 0 0 4px; color: var(--text); font-size: 21px; font-weight: 850; letter-spacing: -.4px; }
 .login-box .sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
@@ -664,13 +834,17 @@ textarea {
    ============================================================ */
 .toast {
     position: fixed; left: 50%; z-index: 200; pointer-events: none;
-    bottom: calc(86px + env(safe-area-inset-bottom));
+    bottom: calc(112px + env(safe-area-inset-bottom));
     transform: translateX(-50%) translateY(16px) scale(.96);
-    background: var(--text); color: var(--bg);
+    background: var(--glass); color: var(--text);
+    -webkit-backdrop-filter: blur(24px) saturate(190%);
+    backdrop-filter: blur(24px) saturate(190%);
+    border: 1px solid var(--edge);
     padding: 11px 20px; border-radius: 999px;
     font-size: 13px; font-weight: 700; opacity: 0;
-    transition: opacity .25s var(--ease), transform .25s var(--ease);
-    max-width: min(90%, 420px); text-align: center; box-shadow: var(--sh-lg);
+    transition: opacity .26s var(--ease), transform .26s var(--ease);
+    max-width: min(90%, 420px); text-align: center;
+    box-shadow: var(--sh-lg), inset 0 1px 0 var(--spec);
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 
@@ -678,11 +852,12 @@ textarea {
     *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
 </style>
-</head><body>
+</head>
+<body>
 <div class="login-overlay" id="login-overlay" style="display:none;">
     <div class="login-box">
-        <div class="logo">58</div>
-        <h2>Fifty Eight League</h2>
+        <div class="logo">56</div>
+        <h2>Fifty Six League</h2>
         <div class="sub">Thuruppu weekly score tracker</div>
         <input id="login-user" type="text" placeholder="Username" autocomplete="username">
         <input id="login-pass" type="password" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter')doLogin()">
@@ -694,13 +869,13 @@ textarea {
 <header class="hero">
     <div class="hero-inner">
         <div class="hero-top">
-            <div class="brand-mark">58</div>
+            <div class="brand-mark">56</div>
             <div class="brand-text">
-                <h1>Fifty Eight League</h1>
+                <h1>Fifty Six League</h1>
                 <p>Thuruppu weekly score tracker</p>
             </div>
             <div class="hero-actions">
-                <button class="icon-btn" id="theme-btn" title="Theme" aria-label="Switch theme" onclick="cycleTheme()">&#9789;</button>
+                <button class="icon-btn" id="theme-btn" title="Theme" aria-label="Switch theme" onclick="cycleTheme()"></button>
             </div>
         </div>
         <span class="sync-status" id="sync-status"><i class="dot"></i>Connecting&hellip;</span>
@@ -715,10 +890,14 @@ textarea {
 </div>
 
 <nav class="tabbar">
-    <button class="active" data-tab="season" onclick="switchTab('season')"><span class="ico">&#127942;</span>Season</button>
-    <button data-tab="teams" onclick="switchTab('teams')"><span class="ico">&#127922;</span>Teams</button>
-    <button data-tab="roster" onclick="switchTab('roster')"><span class="ico">&#128101;</span>Roster</button>
-    <button data-tab="data" onclick="switchTab('data')"><span class="ico">&#128190;</span>Data</button>
+    <button class="active" data-tab="season" onclick="switchTab('season')" aria-label="Season">
+        <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>Season</button>
+    <button data-tab="teams" onclick="switchTab('teams')" aria-label="Teams">
+        <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.2" cy="8.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.8" cy="8.2" r="1.15" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.15" fill="currentColor" stroke="none"/><circle cx="8.2" cy="15.8" r="1.15" fill="currentColor" stroke="none"/><circle cx="15.8" cy="15.8" r="1.15" fill="currentColor" stroke="none"/></svg>Teams</button>
+    <button data-tab="roster" onclick="switchTab('roster')" aria-label="Roster">
+        <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Roster</button>
+    <button data-tab="data" onclick="switchTab('data')" aria-label="Data">
+        <svg class="i" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/></svg>Data</button>
 </nav>
 
 <div class="toast" id="toast"></div>
@@ -726,12 +905,60 @@ textarea {
 const API = '/api/data';
 let saveTimer = null;
 
-/* Outline badge icons (stroke = currentColor; colour set via .ic-* class). */
-const ICON_KING = '<svg class="ic ic-king" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round" aria-hidden="true"><path d="M3 7l4 4 5-6 5 6 4-4-2 12H5L3 7z"/><path d="M5 20h14"/></svg>';
-const ICON_JOKER = '<svg class="ic ic-joker" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M5 13h14a1.7 1.7 0 0 1 1.7 1.7v.6A1.7 1.7 0 0 1 19 17H5a1.7 1.7 0 0 1-1.7-1.7v-.6A1.7 1.7 0 0 1 5 13z"/><path d="M7.2 13 3.6 6.9 8.9 10z"/><path d="M9.9 12 12 4.3 14.1 12z"/><path d="M16.8 13 20.4 6.9 15.1 10z"/><circle cx="3" cy="6" r="1.5"/><circle cx="12" cy="3.4" r="1.5"/><circle cx="21" cy="6" r="1.5"/></svg>';
-const ICON_CROSS = '<svg class="ic ic-cross" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>';
+/* ---------- SVG icon set ----------
+   One 24x24 grid, stroked with currentColor unless `fill` is set, so any icon
+   inherits the colour and size of whatever it sits in. Use icon(name, extraCls).
+   `raw` carries markup that isn't a plain <path> (circles, rects, mixed fills). */
+const ICON_SET = {
+    trophy: ['M6 9H4.5a2.5 2.5 0 0 1 0-5H6', 'M18 9h1.5a2.5 2.5 0 0 0 0-5H18', 'M4 22h16',
+        'M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22',
+        'M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22', 'M18 2H6v7a6 6 0 0 0 12 0V2Z'],
+    crown: ['M11.56 3.27a.5.5 0 0 1 .88 0l2.95 5.6a1 1 0 0 0 1.51.3l4.28-3.67a.5.5 0 0 1 .8.52l-2.84 10.25a1 1 0 0 1-.95.73H5.81a1 1 0 0 1-.96-.73L2.02 6.02a.5.5 0 0 1 .8-.52l4.27 3.67a1 1 0 0 0 1.52-.3z', 'M5 21h14'],
+    medal: ['M6 3h12', 'm8.6 3 3.4 7', 'm15.4 3-3.4 7'],
+    medalRaw: '<circle cx="12" cy="15.6" r="6"/>',
+    joker: { fill: true, raw: '<path d="M5 13h14a1.7 1.7 0 0 1 1.7 1.7v.6A1.7 1.7 0 0 1 19 17H5a1.7 1.7 0 0 1-1.7-1.7v-.6A1.7 1.7 0 0 1 5 13z"/><path d="M7.2 13 3.6 6.9 8.9 10z"/><path d="M9.9 12 12 4.3 14.1 12z"/><path d="M16.8 13 20.4 6.9 15.1 10z"/><circle cx="3" cy="6" r="1.5"/><circle cx="12" cy="3.4" r="1.5"/><circle cx="21" cy="6" r="1.5"/>' },
+    cross: { width: 2.6, d: ['M6 6l12 12', 'M18 6L6 18'] },
+    plus: ['M5 12h14', 'M12 5v14'],
+    check: ['M20 6 9 17l-5-5'],
+    x: ['M18 6 6 18', 'M6 6l12 12'],
+    pencil: ['M21.17 6.81a1 1 0 0 0-3.98-3.99L3.84 16.17a2 2 0 0 0-.5.83l-1.32 4.35a.5.5 0 0 0 .62.63l4.35-1.32a2 2 0 0 0 .83-.5z', 'm15 5 4 4'],
+    shuffle: ['M2 18h1.4c1.3 0 2.5-.6 3.3-1.7l6.1-8.6c.8-1.1 2-1.7 3.3-1.7H22', 'm18 2 4 4-4 4',
+        'M2 6h1.9c1.5 0 2.9.9 3.6 2.2', 'M22 18h-5.9c-1.3 0-2.6-.7-3.3-1.8l-.5-.8', 'm18 14 4 4-4 4'],
+    refresh: ['M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8', 'M21 3v5h-5',
+        'M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16', 'M8 16H3v5'],
+    download: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'm7 10 5 5 5-5', 'M12 15V3'],
+    upload: ['M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4', 'm17 8-5-5-5 5', 'M12 3v12'],
+    lineChart: ['M3 3v16a2 2 0 0 0 2 2h16', 'm19 9-5 5-4-4-3 3'],
+    barChart: ['M3 3v16a2 2 0 0 0 2 2h16', 'M18 17V9', 'M13 17V5', 'M8 17v-3'],
+    calendar: { raw: '<rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/>' },
+    users: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
+    usersRaw: '<circle cx="9" cy="7" r="4"/>',
+    database: { raw: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>' },
+    logOut: ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'm16 17 5-5-5-5', 'M21 12H9'],
+    copy: { raw: '<rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' },
+    sun: { raw: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>' },
+    moon: ['M20.35 15.32A9 9 0 1 1 8.68 3.65a7.2 7.2 0 0 0 11.67 11.67Z'],
+    auto: { raw: '<circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" stroke="none"/>' },
+    caret: { fill: true, raw: '<path d="M12 16 5 8h14z"/>' }
+};
+function icon(name, cls) {
+    let s = ICON_SET[name];
+    if (!s) return '';
+    if (Array.isArray(s)) s = { d: s };
+    const body = (s.raw || '') + (ICON_SET[name + 'Raw'] || '') +
+        (s.d || []).map(d => '<path d="' + d + '"/>').join('');
+    const paint = s.fill
+        ? 'fill="currentColor" stroke="none"'
+        : 'fill="none" stroke="currentColor" stroke-width="' + (s.width || 1.9) + '" stroke-linecap="round" stroke-linejoin="round"';
+    return '<svg class="i ' + (cls || '') + '" viewBox="0 0 24 24" ' + paint + ' aria-hidden="true">' + body + '</svg>';
+}
+const iconKing = cls => icon('crown', 'i-king ' + (cls || ''));
+const iconJoker = cls => icon('joker', 'i-joker ' + (cls || ''));
 // Lifted Joker = the cross sits on top of the Joker icon.
-function iconCrossed(sm) { return '<span class="ic-stack' + (sm ? ' ic-sm' : '') + '" title="Joker lifted">' + ICON_JOKER + ICON_CROSS + '</span>'; }
+function iconCrossed(sm) {
+    return '<span class="i-stack' + (sm ? ' i-sm' : '') + '" title="Joker lifted">' +
+        iconJoker() + icon('cross', 'i-cross') + '</span>';
+}
 
 let state = {
     data: { season: [], roster: [], guests: [] },
@@ -870,7 +1097,7 @@ function round2(n) { return Math.round(n * 100) / 100; }
 function jsArg(s) { return "'" + esc(s).replace(/'/g, "\\'") + "'"; }
 
 /* ---------- theme (light / dark / follow the device) ---------- */
-const THEME_ICON = { auto: '◑', light: '☀️', dark: '☽' };
+const THEME_ICON = { auto: 'auto', light: 'sun', dark: 'moon' };
 function applyTheme() {
     const root = document.documentElement;
     const pref = root.dataset.themePref || 'auto';
@@ -879,7 +1106,7 @@ function applyTheme() {
     root.dataset.theme = dark ? 'dark' : 'light';
     const btn = document.getElementById('theme-btn');
     if (btn) {
-        btn.textContent = THEME_ICON[pref];
+        btn.innerHTML = icon(THEME_ICON[pref]);
         btn.title = 'Theme: ' + pref;
     }
 }
@@ -1100,7 +1327,7 @@ function koEditorHtml(ctx, team1, team2) {
             ? loseTeam.map(p => {
                 const arg = jsArg(p);
                 const on = !!r.crossed[p];
-                return '<button class="chip-toggle' + (on ? ' on' : '') + '" onclick="toggleKoCrossed(\'' + ctx + '\',' + i + ',' + arg + ')">' + (on ? iconCrossed(true) : ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker')) + esc(p) + '</button>';
+                return '<button class="chip-toggle' + (on ? ' on' : '') + '" onclick="toggleKoCrossed(\'' + ctx + '\',' + i + ',' + arg + ')">' + (on ? iconCrossed(true) : iconJoker('i-sm')) + esc(p) + '</button>';
             }).join('')
             : '<span class="meta">no players on the losing team</span>';
         return '<div class="ko-round">' +
@@ -1110,8 +1337,8 @@ function koEditorHtml(ctx, team1, team2) {
             '<button class="' + (r.winner === 'team1' ? 'on-t1' : '') + '" onclick="setKoWinner(\'' + ctx + '\',' + i + ',\'team1\')">Team 1 won 12-0</button>' +
             '<button class="' + (r.winner === 'team2' ? 'on-t2' : '') + '" onclick="setKoWinner(\'' + ctx + '\',' + i + ',\'team2\')">Team 2 won 12-0</button>' +
             '</div>' +
-            '<div class="hint">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + ' King Maker (+2 each): ' + (winTeam.length ? winTeam.map(esc).join(', ') : '—') + '</div>' +
-            '<div class="hint" style="margin-top:6px;">' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + ' Jokers &mdash; tap anyone who lifted theirs:</div>' +
+            '<div class="hint">' + iconKing('i-sm') + ' King Maker (+2 each): ' + (winTeam.length ? winTeam.map(esc).join(', ') : '—') + '</div>' +
+            '<div class="hint" style="margin-top:6px;">' + iconJoker('i-sm') + ' Jokers &mdash; tap anyone who lifted theirs:</div>' +
             '<div class="ko-jokers">' + jokers + '</div>' +
             '</div>';
     }).join('');
@@ -1289,7 +1516,7 @@ function copyJson() {
 function renderTeamsTab() {
     const el = document.getElementById('tab-teams');
     if (!state.data.roster.length) {
-        el.innerHTML = '<div class="card"><h3>&#127922; Make random teams</h3>' +
+        el.innerHTML = '<div class="card"><h3>' + icon('shuffle') + 'Make random teams</h3>' +
             '<div class="meta">Add players in the <strong>Roster</strong> tab first.</div></div>';
         return;
     }
@@ -1305,7 +1532,7 @@ function renderTeamsTab() {
             '<span class="rname">' + esc(p) + guestTag(p) +
             '<span class="lb-sub">' + round2(pts[p] || 0) + ' pts</span></span>' +
             '<button class="mini-toggle go' + (on ? ' on' : '') + '" onclick="toggleShufflePick(' + arg + ')">' +
-            (on ? '✓ Playing' : 'Pick') + '</button>' +
+            (on ? icon('check') + 'Playing' : 'Pick') + '</button>' +
             '</div>';
     }).join('') + '</div>';
 
@@ -1315,14 +1542,14 @@ function renderTeamsTab() {
         tolOpts.map(t => '<button class="mini-toggle sel' + (Math.abs(curTol - t.v) < 1e-9 ? ' on' : '') +
             '" onclick="setShuffleTol(' + t.v + ')">' + t.l + '</button>').join('') + '</div>';
 
-    let html = '<div class="card"><h3>&#127922; Make random teams</h3>' +
+    let html = '<div class="card"><h3>' + icon('shuffle') + 'Make random teams</h3>' +
         '<div class="hint" style="margin-bottom:12px;">Step 1 &mdash; tap <strong>Pick</strong> for everyone playing today. Step 2 &mdash; hit <strong>Shuffle &amp; make teams</strong>. Picks are random, but kept within the balance tolerance below so the top players don\'t all land on the same side.</div>' +
         '<label>Balance tolerance</label>' +
         '<div class="hint" style="margin-bottom:4px;">How far apart the teams\' season points may drift. Looser = more random, tighter = more even.</div>' +
         tolBtns +
         '<div class="meta" style="margin:10px 0;">' + pickedCount + ' picked</div>' +
         pickList +
-        '<button class="btn green" style="margin-top:14px;" onclick="shuffleMakeTeams()">&#127922; Shuffle &amp; make teams</button>' +
+        '<button class="btn green" style="margin-top:14px;" onclick="shuffleMakeTeams()">' + icon('shuffle') + 'Shuffle &amp; make teams</button>' +
         (pickedCount ? '<button class="btn subtle" style="margin-top:8px;" onclick="shuffleClearPicks()">Clear picks</button>' : '') +
         '</div>';
 
@@ -1331,7 +1558,7 @@ function renderTeamsTab() {
         const t1 = state.shuffle.team1, t2 = state.shuffle.team2;
         const sum = arr => arr.reduce((s, p) => s + (pts[p] || 0), 0);
         const gap = round2(Math.abs(sum(t1) - sum(t2)));
-        html += '<div class="card"><h3>Teams</h3>' +
+        html += '<div class="card"><h3>' + icon('users') + 'Teams</h3>' +
             '<div class="matchup">' +
             '<div class="team t1"><div class="tlabel">Team 1</div>' +
             '<div class="tscore" style="color:var(--blue)">' + round2(sum(t1)) + '</div>' +
@@ -1343,7 +1570,7 @@ function renderTeamsTab() {
             '</div>' +
             '<div class="score-caption">Season points &middot; gap ' + gap + '</div>' +
             '<div class="hint" style="text-align:center;margin-top:8px;">Team totals are season points &mdash; the closer they are, the more even the split.</div>' +
-            '<button class="btn green" style="margin-top:14px;" onclick="shuffleMakeTeams()">&#128260; Shuffle again</button>' +
+            '<button class="btn green" style="margin-top:14px;" onclick="shuffleMakeTeams()">' + icon('refresh') + 'Shuffle again</button>' +
             '<button class="btn subtle" style="margin-top:8px;" onclick="shuffleUseForGameDay()">Use these teams for a game day</button>' +
             '</div>';
     }
@@ -1360,20 +1587,20 @@ function renderRosterTab() {
                 avatarHtml(p) +
                 '<span class="rname">' + esc(p) + (g ? ' <span class="guest-tag">Guest</span>' : '') + '</span>' +
                 '<button class="mini-toggle' + (g ? ' on' : '') + '" title="Toggle guest" onclick="toggleGuest(' + arg + ')">Guest</button>' +
-                '<button class="mini-btn" title="Rename" onclick="renameRosterPlayer(' + arg + ')">&#9998;</button>' +
-                '<button class="mini-btn danger" title="Remove" onclick="removeRosterPlayer(' + arg + ')">&times;</button>' +
+                '<button class="mini-btn" title="Rename" onclick="renameRosterPlayer(' + arg + ')">' + icon('pencil') + '</button>' +
+                '<button class="mini-btn danger" title="Remove" onclick="removeRosterPlayer(' + arg + ')">' + icon('x') + '</button>' +
                 '</div>';
         }).join('') + '</div>'
         : '<div class="meta">No players yet. Add your regulars once &mdash; they will be remembered across game nights.</div>';
 
     document.getElementById('tab-roster').innerHTML =
-        '<div class="card"><h3>Roster (' + state.data.roster.length + ' players' + (guestCount ? ', ' + guestCount + ' guest' + (guestCount > 1 ? 's' : '') : '') + ')</h3>' +
-        '<div class="hint" style="margin-bottom:12px;">Your players. Tap <strong>Guest</strong> to mark someone as a guest, &#9998; to rename (updates past games too), or &times; to remove. Removing keeps past game history.</div>' +
+        '<div class="card"><h3>' + icon('users') + 'Roster (' + state.data.roster.length + ' players' + (guestCount ? ', ' + guestCount + ' guest' + (guestCount > 1 ? 's' : '') : '') + ')</h3>' +
+        '<div class="hint" style="margin-bottom:12px;">Your players. Tap <strong>Guest</strong> to mark someone as a guest, ' + icon('pencil', 'i-xs') + ' to rename (updates past games too), or ' + icon('x', 'i-xs') + ' to remove. Removing keeps past game history.</div>' +
         rosterList +
         '<div class="add-row" style="margin-top:14px;">' +
         '<input id="new-player" type="text" placeholder="Add player name" onkeydown="if(event.key===\'Enter\')addRosterPlayer()">' +
         '<button class="btn" onclick="addRosterPlayer()">Add</button></div>' +
-        '<label class="guest-check" onclick="toggleNewGuest()"><span class="box' + (state.newGuest ? ' on' : '') + '">' + (state.newGuest ? '&#10003;' : '') + '</span> Add as guest</label>' +
+        '<label class="guest-check" onclick="toggleNewGuest()"><span class="box' + (state.newGuest ? ' on' : '') + '">' + (state.newGuest ? icon('check') : '') + '</span> Add as guest</label>' +
         '</div>';
 }
 
@@ -1430,7 +1657,7 @@ function bumpChartHtml(season, leaderboard) {
     const PAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
     const colored = idx => idx < PAL.length;
     const colorFor = idx => colored(idx) ? PAL[idx] : '#c2c6cc';
-    const medal = ['🥇', '🥈', '🥉'];
+    
     const hl = state.lbHighlight;
 
     const rowH = 34, topM = 30, botM = 40, leftM = 32;
@@ -1497,16 +1724,26 @@ function bumpChartHtml(season, leaderboard) {
                 '<title>' + esc(p.name) + ' · W' + season[pt.wi].week + ' · rank ' + pt.r + ' · ' + round2(pt.cp) + ' pts</title></circle>';
         });
 
-        // End label as a coloured pill (medal for the overall top three).
+        // End label as a coloured pill. The overall top three carry a small
+        // medal disc drawn in SVG (gold / silver / bronze) ahead of the name.
         const last = pts[pts.length - 1];
-        const tag = (idx < 3 ? medal[idx] + ' ' : '') + p.name;
-        const pillW = Math.round(tag.length * 6.6 + (idx < 3 ? 20 : 16));
-        const pillH = 20, px = last.x + 11, py = last.y - pillH / 2;
+        const isMedal = idx < 3;
+        const MEDAL = ['#e8b60d', '#c2cbd8', '#cd8f56'];
+        const pillH = 20, discR = 7.2, discGap = isMedal ? discR * 2 + 5 : 0;
+        const pillW = Math.round(p.name.length * 6.6 + 16 + discGap);
+        const px = last.x + 11, py = last.y - pillH / 2;
         const pillFill = colored(idx) ? col : '#6b7280';
+        const textX = px + (pillW + discGap) / 2;
         svg += '<g opacity="' + (dim ? 0.3 : 1) + '" onclick="toggleChartHighlight(' + arg + ')" style="cursor:pointer">' +
             '<rect x="' + px + '" y="' + py + '" width="' + pillW + '" height="' + pillH + '" rx="10" fill="' + pillFill + '"' +
             (isHl ? ' filter="url(#bumpSh)"' : '') + '/>' +
-            '<text class="bump-pill-txt" x="' + (px + pillW / 2) + '" y="' + (last.y + 4) + '" text-anchor="middle">' + esc(tag) + '</text></g>';
+            (isMedal
+                ? '<circle cx="' + (px + 4 + discR) + '" cy="' + last.y + '" r="' + discR + '" fill="' + MEDAL[idx] +
+                  '" stroke="rgba(255,255,255,.65)" stroke-width="1"/>' +
+                  '<text class="bump-medal" x="' + (px + 4 + discR) + '" y="' + (last.y + 3.4) +
+                  '" text-anchor="middle" fill="#4a3708">' + (idx + 1) + '</text>'
+                : '') +
+            '<text class="bump-pill-txt" x="' + textX + '" y="' + (last.y + 4) + '" text-anchor="middle">' + esc(p.name) + '</text></g>';
     });
     svg += '</svg>';
 
@@ -1637,11 +1874,11 @@ function netChartHtml(season, leaderboard) {
 
 function pastFormHtml() {
     if (!state.showPast) {
-        return '<div class="card"><button class="btn" onclick="togglePastForm()">&#10133;&nbsp; Add a game day</button>' +
+        return '<div class="card"><button class="btn" onclick="togglePastForm()">' + icon('plus') + 'Add a game day</button>' +
             '<div class="hint" style="text-align:center;">Record a week &mdash; pick the date, set the teams and each team\'s end-of-week score.</div></div>';
     }
     if (state.data.roster.length < 2) {
-        return '<div class="card"><h3>Add a game day</h3>' +
+        return '<div class="card"><h3>' + icon('calendar') + 'Add a game day</h3>' +
             '<div class="meta">Add at least two players in the <strong>Roster</strong> tab first.</div>' +
             '<button class="btn subtle" style="margin-top:10px;" onclick="togglePastForm()">Cancel</button></div>';
     }
@@ -1664,7 +1901,7 @@ function pastFormHtml() {
     const pT1 = state.data.roster.filter(p => state.past.team[p] === 'team1');
     const pT2 = state.data.roster.filter(p => state.past.team[p] === 'team2');
 
-    return '<div class="card"><h3>Add a game day</h3>' +
+    return '<div class="card"><h3>' + icon('calendar') + 'Add a game day</h3>' +
         '<label>Game date</label>' +
         '<input type="date" value="' + esc(state.past.date) + '" max="' + new Date().toISOString().split('T')[0] + '" onchange="setPastDate(this.value)">' +
         '<label style="margin-top:14px;">Team score for the week</label>' +
@@ -1697,7 +1934,7 @@ function podiumHtml(byPoints) {
                 : top.length === 2 ? [top[1], top[0]]
                 : [top[0]];
     const place = p => byPoints.indexOf(p) + 1;
-    const crowns = { 1: '👑', 2: '🥈', 3: '🥉' };
+    const crowns = { 1: icon('crown'), 2: icon('medal'), 3: icon('medal') };
     const cells = order.map(p => {
         const n = place(p);
         return '<div class="pod p' + n + '">' +
@@ -1711,7 +1948,7 @@ function podiumHtml(byPoints) {
     }).join('');
     const lead = byPoints[0];
     return '<div class="podium">' +
-        '<div class="podium-title">🏆 Season leaders</div>' +
+        '<div class="podium-title">' + icon('trophy') + 'Season leaders</div>' +
         '<div class="podium-row">' + cells + '</div>' +
         '<div class="hint" style="text-align:center;margin-top:12px;">' +
         esc(lead.name) + ' leads with ' + round2(lead.points) + ' pts · ' +
@@ -1724,7 +1961,7 @@ function renderSeasonTab() {
     let html = pastFormHtml();
 
     if (season.length === 0) {
-        html += '<div class="card"><div class="empty"><div class="big">&#127942;</div>' +
+        html += '<div class="card"><div class="empty"><div class="big">' + icon('trophy') + '</div>' +
             '<strong style="display:block;color:var(--text);font-size:15px;margin-bottom:4px;">No game days yet</strong>' +
             'Add your first game day above and the leaderboard, charts and season stats will appear here.</div></div>';
     } else {
@@ -1788,7 +2025,7 @@ function renderSeasonTab() {
 
             const view = ['weekly', 'chart', 'net'].includes(state.lbView) ? state.lbView : 'ranking';
             // Clickable, sortable header cell. Active column shows a caret.
-            const caret = ' <span class="sort-caret">▾</span>';
+            const caret = ' ' + icon('caret', 'sort-caret');
             const th = (label, key, title) => '<th class="sortable ' + (sortBy === key ? 'sorted' : '') + '"' +
                 (title ? ' title="' + title + '"' : '') + ' onclick="setLbSort(\'' + key + '\')">' +
                 label + (sortBy === key ? caret : '') + '</th>';
@@ -1798,8 +2035,8 @@ function renderSeasonTab() {
                 '<div class="lb-sort">Tap a column heading to sort.</div>' +
                 '<div class="lb-table-wrap"><table class="lb-table"><thead><tr>' +
                 '<th class="col-name">Player</th>' +
-                th(ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king'), 'kings', 'King Maker') +
-                th(ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker'), 'jokers', 'Jokers received') +
+                th(iconKing('i-sm'), 'kings', 'King Maker') +
+                th(iconJoker('i-sm'), 'jokers', 'Jokers received') +
                 th(iconCrossed(true), 'crossed', 'Jokers lifted') +
                 th('Net', 'net', 'King Maker − (Jokers − lifted)') +
                 th('PPGW', 'ppgw') + th('Pts', 'points') +
@@ -1820,7 +2057,7 @@ function renderSeasonTab() {
                     '<td class="lb-pts-cell ' + (sortBy === 'points' ? 'sorted' : '') + '" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(p.points) + '</td>' +
                     '</tr>').join('') +
                 '</tbody></table></div>' +
-                '<div class="hint">' + ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') + ' King Maker \u00b7 ' + ICON_JOKER.replace('ic ic-joker', 'ic ic-sm ic-joker') + ' Jokers \u00b7 ' + iconCrossed(true) + ' lifted Joker \u00b7 PPGW = points \u00f7 weeks played. Points = tally (badges are counted but add no points).</div>';
+                '<div class="hint">' + iconKing('i-sm') + ' King Maker \u00b7 ' + iconJoker('i-sm') + ' Jokers \u00b7 ' + iconCrossed(true) + ' lifted Joker \u00b7 PPGW = points \u00f7 weeks played. Points = tally (badges are counted but add no points).</div>';
 
             // Weekly breakdown: "points won" (badges add no points).
             const cellFor = (w, p) => {
@@ -1849,12 +2086,12 @@ function renderSeasonTab() {
                 '</tbody></table></div>' +
                 '<div class="hint">Each cell is that week\'s points won. \u2013 = didn\'t play.</div>';
 
-            html += '<div class="card"><h3>Player leaderboard</h3>' +
+            html += '<div class="card"><h3>' + icon('trophy') + 'Player leaderboard</h3>' +
                 '<div class="lb-view">' +
                 '<button class="' + (view === 'ranking' ? 'on' : '') + '" onclick="setLbView(\'ranking\')">Ranking</button>' +
                 '<button class="' + (view === 'weekly' ? 'on' : '') + '" onclick="setLbView(\'weekly\')">Weekly breakdown</button>' +
-                '<button class="' + (view === 'chart' ? 'on' : '') + '" onclick="setLbView(\'chart\')">&#128200; Position chart</button>' +
-                '<button class="' + (view === 'net' ? 'on' : '') + '" onclick="setLbView(\'net\')">&#128202; Net trend</button>' +
+                '<button class="' + (view === 'chart' ? 'on' : '') + '" onclick="setLbView(\'chart\')">' + icon('lineChart') + 'Position chart</button>' +
+                '<button class="' + (view === 'net' ? 'on' : '') + '" onclick="setLbView(\'net\')">' + icon('barChart') + 'Net trend</button>' +
                 '</div>' +
                 (view === 'ranking' ? rankingHtml : view === 'weekly' ? weeklyHtml :
                     view === 'chart' ? bumpChartHtml(season, leaderboard) : netChartHtml(season, leaderboard)) +
@@ -1864,13 +2101,13 @@ function renderSeasonTab() {
         const koTotal = season.reduce((n, w) => n + ((w.koRounds || []).length), 0);
         const roundsTotal = leaderboard.reduce((n, p) => n + p.roundWins, 0);
         const lastDate = season.length ? season[season.length - 1].date : '';
-        const tile = (v, l, cls) => '<div class="stat-tile ' + cls + '"><div class="sv">' + v + '</div><div class="sl">' + l + '</div></div>';
-        html += '<div class="card"><h3>Season stats</h3>' +
+        const tile = (v, l, cls, ic) => '<div class="stat-tile ' + cls + '"><div class="sv">' + (ic ? icon(ic) : '') + '<span>' + v + '</span></div><div class="sl">' + l + '</div></div>';
+        html += '<div class="card"><h3>' + icon('barChart') + 'Season stats</h3>' +
             '<div class="stat-grid">' +
-            tile(season.length, 'Game days', 'blue') +
-            tile(leaderboard.length, 'Players', 'green') +
-            tile(roundsTotal, 'Round wins', 'amber') +
-            tile(koTotal, '12-0 rounds', 'violet') +
+            tile(season.length, 'Game days', 'blue', 'calendar') +
+            tile(leaderboard.length, 'Players', 'green', 'users') +
+            tile(roundsTotal, 'Round wins', 'amber', 'trophy') +
+            tile(koTotal, '12-0 rounds', 'violet', 'crown') +
             '</div>' +
             (lastDate ? '<div class="hint" style="text-align:center;">Last game day &middot; ' + esc(lastDate) + '</div>' : '') +
             '</div>';
@@ -1887,8 +2124,8 @@ function renderSeasonTab() {
             const s2 = w.manual ? w.teamScores.team2 : t2r;
             const caption = w.manual ? 'Final score' : 'Rounds won';
             const footer = w.manual
-                ? 'Entered manually' + (w.finalTally ? ' \u00b7 points recorded &#10003;' : '')
-                : w.games.length + ' games' + (w.finalTally ? ' \u00b7 tally saved &#10003;' : ' \u00b7 tally pending');
+                ? 'Entered manually' + (w.finalTally ? ' \u00b7 points recorded ' + icon('check','i-xs') + '' : '')
+                : w.games.length + ' games' + (w.finalTally ? ' \u00b7 tally saved ' + icon('check','i-xs') + '' : ' \u00b7 tally pending');
 
             const ko = w.koRounds || [];
             let koLine = '';
@@ -1900,7 +2137,7 @@ function renderSeasonTab() {
                         ? '<span class="ko-lift">' + iconCrossed(true) + ' ' + r.crossed.map(esc).join(', ') + '</span>'
                         : '';
                     return '<div class="ko-line"><span class="ko-rn">Round ' + (ri + 1) + '</span>' +
-                        ICON_KING.replace('ic ic-king', 'ic ic-sm ic-king') +
+                        iconKing('i-sm') +
                         '<span class="' + kingCls + '">' + kingTeam + '</span>' + lifted + '</div>';
                 }).join('');
                 koLine = '<div class="ko-summary"><div class="ko-summary-title">' + ko.length + '× 12-0 rounds</div>' + lines + '</div>';
@@ -1913,7 +2150,7 @@ function renderSeasonTab() {
                 '<span class="wk-date">' + esc(w.date) + '</span>' +
                 (w.manual ? '<span class="badge manual">manual</span>' : '') + '</span>' +
                 '<span class="wk-right">' +
-                (editing ? '' : '<button class="btn small subtle" onclick="editWeekOpen(' + i + ')">✎ Edit points</button>') +
+                (editing ? '' : '<button class="btn small subtle" onclick="editWeekOpen(' + i + ')">' + icon('pencil') + 'Edit points</button>') +
                 '</span></div>' +
                 '<div class="matchup">' +
                 '<div class="team t1' + (s1 > s2 ? ' win' : '') + '"><div class="tlabel">Team 1</div>' +
@@ -1964,28 +2201,28 @@ function renderDataTab() {
     const players = (state.data.roster || []).length;
     const bytes = JSON.stringify(state.data).length;
     const size = bytes > 1024 ? (bytes / 1024).toFixed(1) + ' KB' : bytes + ' B';
-    const tile = (v, l, cls) => '<div class="stat-tile ' + cls + '"><div class="sv">' + v + '</div><div class="sl">' + l + '</div></div>';
+    const tile = (v, l, cls, ic) => '<div class="stat-tile ' + cls + '"><div class="sv">' + (ic ? icon(ic) : '') + '<span>' + v + '</span></div><div class="sl">' + l + '</div></div>';
 
     document.getElementById('tab-data').innerHTML =
-        '<div class="card"><h3>Stored data</h3>' +
+        '<div class="card"><h3>' + icon('database') + 'Stored data</h3>' +
         '<div class="stat-grid">' +
-        tile(weeks, 'Game days', 'blue') +
-        tile(players, 'Roster', 'green') +
-        tile(size, 'Size', 'amber') +
-        tile(getToken() ? '✓' : '—', 'Signed in', 'violet') +
+        tile(weeks, 'Game days', 'blue', 'calendar') +
+        tile(players, 'Roster', 'green', 'users') +
+        tile(size, 'Size', 'amber', 'database') +
+        tile(getToken() ? 'Yes' : 'No', 'Signed in', 'violet', 'check') +
         '</div></div>' +
-        '<div class="card"><h3>Backup and restore</h3>' +
+        '<div class="card"><h3>' + icon('download') + 'Backup and restore</h3>' +
         '<div class="row">' +
-        '<button class="btn green" onclick="exportData()">&#8595; Export JSON</button>' +
-        '<button class="btn blue" onclick="document.getElementById(\'import-file\').click()">&#8593; Import JSON</button>' +
+        '<button class="btn green" onclick="exportData()">' + icon('download') + 'Export JSON</button>' +
+        '<button class="btn blue" onclick="document.getElementById(\'import-file\').click()">' + icon('upload') + 'Import JSON</button>' +
         '</div>' +
         '<input id="import-file" type="file" accept=".json" onchange="importData(event)" style="display:none;">' +
         '<div class="hint">When signed in and online, every change is saved to Vercel Blob storage (shared across all devices). Export a JSON copy any time for an extra backup.</div></div>' +
-        '<div class="card"><h3>Raw data</h3>' +
+        '<div class="card"><h3>' + icon('copy') + 'Raw data</h3>' +
         '<textarea readonly>' + esc(JSON.stringify(state.data, null, 2)) + '</textarea>' +
-        '<button class="btn subtle" style="margin-top:10px;" onclick="copyJson()">Copy to clipboard</button></div>' +
-        '<div class="card"><h3>Account</h3>' +
-        '<button class="btn danger" onclick="logout()">Sign out</button></div>';
+        '<button class="btn subtle" style="margin-top:10px;" onclick="copyJson()">' + icon('copy') + 'Copy to clipboard</button></div>' +
+        '<div class="card"><h3>' + icon('logOut') + 'Account</h3>' +
+        '<button class="btn danger" onclick="logout()">' + icon('logOut') + 'Sign out</button></div>';
 }
 
 function render() {
