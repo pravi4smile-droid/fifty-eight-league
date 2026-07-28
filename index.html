@@ -65,13 +65,44 @@
     --on-amber: #a45f0a; --on-violet: #5b32b8;
     --sorted-bg: rgba(47,111,219,.08);
 
-    --chart-plot: rgba(255,255,255,.5); --chart-stripe: #0d1526; --chart-stripe-op: .04;
-    --hdr-1: #1d3f75; --hdr-2: #2f6bb5; --hdr-3: #57a0e0;
+    /* Text/icons that sit on a saturated fill, and the gloss highlight on it. */
+    --on-accent: #ffffff;
+    --gloss: rgba(255,255,255,.34);
+    --gloss-strong: rgba(255,255,255,.55);
+    --lighten: #ffffff;   /* the pole colour gradients mix toward */
 
+    /* Header (always a saturated gradient, so its glass is white-tinted). */
+    --hdr-1: #1d3f75; --hdr-2: #2f6bb5; --hdr-3: #57a0e0; --hdr-fg: #ffffff;
+    --hdr-glass: rgba(255,255,255,.16); --hdr-glass-2: rgba(255,255,255,.38);
+    --hdr-edge: rgba(255,255,255,.28); --hdr-spec: rgba(255,255,255,.45);
+    --hdr-sheen: rgba(255,255,255,.26);
+
+    /* Medals: podium plinths, rank pills and chart discs all read from these. */
+    --medal-1a: #ffe89a; --medal-1b: #d99f0d; --medal-1ink: #5f4204; --medal-1flat: #e8b60d;
+    --medal-2a: #f0f3f8; --medal-2b: #b3bdca; --medal-2ink: #414b58; --medal-2flat: #c2cbd8;
+    --medal-3a: #f6cda3; --medal-3b: #c9884f; --medal-3ink: #5b330d; --medal-3flat: #cd8f56;
+    --medal-ring: rgba(255,255,255,.65);
+
+    /* Cast shadows, split out so dark mode can go deeper. */
+    --sh-cast: rgba(13,21,38,.20);
+    --sh-cast-soft: rgba(13,21,38,.14);
+    --sh-col: rgba(13,21,38,.30);
+    --sh-inset: rgba(13,21,38,.05);
     --sh-sm: 0 1px 2px rgba(13,21,38,.05), 0 4px 14px rgba(13,21,38,.06);
     --sh-md: 0 8px 28px rgba(13,21,38,.10), 0 2px 8px rgba(13,21,38,.05);
     --sh-lg: 0 20px 52px rgba(13,21,38,.18), 0 4px 12px rgba(13,21,38,.08);
     --scrim: rgba(13,21,38,.4);
+
+    /* Chart surfaces + the categorical series palette read by the SVG builders. */
+    --chart-plot: rgba(255,255,255,.5); --chart-stripe: #0d1526; --chart-stripe-op: .04;
+    --chart-dot-ring: #ffffff; --chart-shadow: #0b1220;
+    --chart-pos: #17a05c; --chart-neg: #e0405f;
+    --c-mute: #c2c6cc; --c-pill-mute: #6b7280; --chart-pill-ink: #ffffff;
+    --c1: #2a78d6; --c2: #1baf7a; --c3: #eda100; --c4: #008300;
+    --c5: #4a3aa7; --c6: #e34948; --c7: #e87ba4; --c8: #eb6834;
+
+    /* Avatar gradient stops (hue comes from the player's name). */
+    --avi-s1: 62%; --avi-l1: 56%; --avi-s2: 60%; --avi-l2: 44%;
 }
 :root[data-theme="dark"] {
     color-scheme: dark;
@@ -99,13 +130,38 @@
     --on-amber: #ffcd6f; --on-violet: #c9b2ff;
     --sorted-bg: rgba(95,162,251,.11);
 
-    --chart-plot: rgba(255,255,255,.045); --chart-stripe: #ffffff; --chart-stripe-op: .05;
-    --hdr-1: #14264a; --hdr-2: #1f4a86; --hdr-3: #2e6cb0;
+    --on-accent: #ffffff;
+    --gloss: rgba(255,255,255,.20);
+    --gloss-strong: rgba(255,255,255,.28);
+    --lighten: #ffffff;
 
+    --hdr-1: #14264a; --hdr-2: #1f4a86; --hdr-3: #2e6cb0; --hdr-fg: #ffffff;
+    --hdr-glass: rgba(255,255,255,.12); --hdr-glass-2: rgba(255,255,255,.26);
+    --hdr-edge: rgba(255,255,255,.20); --hdr-spec: rgba(255,255,255,.30);
+    --hdr-sheen: rgba(255,255,255,.16);
+
+    --medal-1a: #f5d572; --medal-1b: #b8830a; --medal-1ink: #3a2802; --medal-1flat: #e0ae1c;
+    --medal-2a: #d5dce7; --medal-2b: #8d97a6; --medal-2ink: #23292f; --medal-2flat: #b6c0cd;
+    --medal-3a: #e2b184; --medal-3b: #a56c3a; --medal-3ink: #331904; --medal-3flat: #c08150;
+    --medal-ring: rgba(255,255,255,.45);
+
+    --sh-cast: rgba(0,0,0,.5);
+    --sh-cast-soft: rgba(0,0,0,.4);
+    --sh-col: rgba(0,0,0,.6);
+    --sh-inset: rgba(0,0,0,.25);
     --sh-sm: 0 1px 2px rgba(0,0,0,.45);
     --sh-md: 0 10px 30px rgba(0,0,0,.5);
     --sh-lg: 0 22px 56px rgba(0,0,0,.62);
     --scrim: rgba(0,0,0,.6);
+
+    --chart-plot: rgba(255,255,255,.045); --chart-stripe: #ffffff; --chart-stripe-op: .05;
+    --chart-dot-ring: #151c2f; --chart-shadow: #000000;
+    --chart-pos: #43d68a; --chart-neg: #fb6f8c;
+    --c-mute: #5c6780; --c-pill-mute: #9aa5bd; --chart-pill-ink: #0b1020;
+    --c1: #5fa2fb; --c2: #3ed99b; --c3: #f5c542; --c4: #4cc76a;
+    --c5: #9b8cf5; --c6: #fb7185; --c7: #f79ac4; --c8: #fb9a5f;
+
+    --avi-s1: 58%; --avi-l1: 52%; --avi-s2: 56%; --avi-l2: 38%;
 }
 
 /* ============================================================
@@ -168,14 +224,14 @@ body::before {
     margin: 0 0 14px; padding: calc(11px + env(safe-area-inset-top)) 12px 13px;
     border-radius: 0 0 var(--r-2xl) var(--r-2xl);
     background: linear-gradient(142deg, var(--hdr-1), var(--hdr-2) 52%, var(--hdr-3));
-    color: #fff; box-shadow: var(--sh-md);
+    color: var(--hdr-fg); box-shadow: var(--sh-md);
 }
 /* Angular specular sweep across the header glass. */
 .hero::after {
     content: ''; position: absolute; inset: 0; pointer-events: none;
     background:
-        linear-gradient(112deg, rgba(255,255,255,.26) 0%, rgba(255,255,255,.05) 26%, transparent 48%),
-        radial-gradient(240px 130px at 92% -30%, rgba(255,255,255,.30), transparent 70%);
+        linear-gradient(112deg, var(--hdr-sheen) 0%, transparent 48%),
+        radial-gradient(240px 130px at 92% -30%, var(--hdr-spec), transparent 70%);
 }
 .hero-inner {
     position: relative; z-index: 1;
@@ -187,10 +243,10 @@ body::before {
     width: 40px; height: 40px; flex-shrink: 0; border-radius: 14px;
     display: flex; align-items: center; justify-content: center;
     font-family: var(--num); font-weight: 800; font-size: 17px; letter-spacing: -.6px;
-    background: linear-gradient(155deg, rgba(255,255,255,.38), rgba(255,255,255,.08));
+    background: linear-gradient(155deg, var(--hdr-glass-2), transparent);
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-    border: 1px solid rgba(255,255,255,.34);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.55), 0 4px 12px rgba(0,0,0,.16);
+    border: 1px solid var(--hdr-edge);
+    box-shadow: inset 0 1px 0 var(--hdr-spec), 0 4px 12px var(--sh-cast-soft);
 }
 .brand-text { min-width: 0; flex: 1; }
 .brand-text h1 {
@@ -202,13 +258,13 @@ body::before {
 .icon-btn {
     width: 38px; height: 38px; border-radius: 13px; flex-shrink: 0;
     display: inline-flex; align-items: center; justify-content: center;
-    background: rgba(255,255,255,.16); border: 1px solid rgba(255,255,255,.24);
+    background: var(--hdr-glass); border: 1px solid var(--hdr-edge);
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-    color: #fff; cursor: pointer;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.35);
+    color: var(--hdr-fg); cursor: pointer;
+    box-shadow: inset 0 1px 0 var(--hdr-spec);
     transition: transform .16s var(--ease), background .2s;
 }
-.icon-btn:active { transform: scale(.9); background: rgba(255,255,255,.3); }
+.icon-btn:active { transform: scale(.9); background: var(--hdr-glass-2); }
 
 /* ============================================================
    Floating glass tab dock
@@ -243,7 +299,7 @@ body::before {
 .tabbar button.active {
     color: var(--strong-fg);
     background: linear-gradient(150deg, var(--strong-2), var(--strong));
-    box-shadow: 0 4px 14px color-mix(in srgb, var(--strong-2) 42%, transparent), inset 0 1px 0 rgba(255,255,255,.35);
+    box-shadow: 0 4px 14px color-mix(in srgb, var(--strong-2) 42%, transparent), inset 0 1px 0 var(--gloss);
 }
 .tabbar button.active .i { transform: translateY(-1px) scale(1.06); }
 
@@ -315,7 +371,7 @@ input, select, textarea {
     font-size: 16px; /* 16px keeps iOS from zooming on focus */
     background: var(--field); color: var(--text);
     -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px);
-    box-shadow: inset 0 1px 2px rgba(13,21,38,.05);
+    box-shadow: inset 0 1px 2px var(--sh-inset);
     transition: border-color .18s, background .18s, box-shadow .18s;
 }
 input::placeholder, textarea::placeholder { color: var(--muted); opacity: .85; }
@@ -336,10 +392,10 @@ input:focus, select:focus, textarea:focus {
     transition: all .18s var(--ease);
 }
 .seg2 button:active { transform: scale(.97); }
-.seg2 button.on-t1 { background: linear-gradient(150deg, color-mix(in srgb, var(--blue) 88%, #fff), var(--blue)); color: #fff; border-color: transparent; box-shadow: 0 4px 13px color-mix(in srgb, var(--blue) 42%, transparent), inset 0 1px 0 rgba(255,255,255,.35); }
-.seg2 button.on-t2 { background: linear-gradient(150deg, color-mix(in srgb, var(--red) 88%, #fff), var(--red)); color: #fff; border-color: transparent; box-shadow: 0 4px 13px color-mix(in srgb, var(--red) 42%, transparent), inset 0 1px 0 rgba(255,255,255,.35); }
-.seg2 button.on-made { background: linear-gradient(150deg, color-mix(in srgb, var(--green) 88%, #fff), var(--green)); color: #fff; border-color: transparent; }
-.seg2 button.on-lost { background: linear-gradient(150deg, color-mix(in srgb, var(--red) 88%, #fff), var(--red)); color: #fff; border-color: transparent; }
+.seg2 button.on-t1 { background: linear-gradient(150deg, color-mix(in srgb, var(--blue) 88%, var(--lighten)), var(--blue)); color: var(--on-accent); border-color: transparent; box-shadow: 0 4px 13px color-mix(in srgb, var(--blue) 42%, transparent), inset 0 1px 0 var(--gloss); }
+.seg2 button.on-t2 { background: linear-gradient(150deg, color-mix(in srgb, var(--red) 88%, var(--lighten)), var(--red)); color: var(--on-accent); border-color: transparent; box-shadow: 0 4px 13px color-mix(in srgb, var(--red) 42%, transparent), inset 0 1px 0 var(--gloss); }
+.seg2 button.on-made { background: linear-gradient(150deg, color-mix(in srgb, var(--green) 88%, var(--lighten)), var(--green)); color: var(--on-accent); border-color: transparent; }
+.seg2 button.on-lost { background: linear-gradient(150deg, color-mix(in srgb, var(--red) 88%, var(--lighten)), var(--red)); color: var(--on-accent); border-color: transparent; }
 
 .btn {
     position: relative; overflow: hidden;
@@ -349,19 +405,19 @@ input:focus, select:focus, textarea:focus {
     background: linear-gradient(150deg, var(--strong-2), var(--strong));
     color: var(--strong-fg); font-size: 15px; font-weight: 800; letter-spacing: .1px;
     cursor: pointer;
-    box-shadow: 0 6px 18px color-mix(in srgb, var(--strong) 34%, transparent), inset 0 1px 0 rgba(255,255,255,.34);
+    box-shadow: 0 6px 18px color-mix(in srgb, var(--strong) 34%, transparent), inset 0 1px 0 var(--gloss);
     transition: transform .15s var(--ease), box-shadow .2s, filter .2s;
 }
 /* Angular specular streak across the button face. */
 .btn::after {
     content: ''; position: absolute; inset: 0; pointer-events: none;
-    background: linear-gradient(112deg, rgba(255,255,255,.30) 0%, rgba(255,255,255,.06) 30%, transparent 52%);
+    background: linear-gradient(112deg, var(--gloss-strong) 0%, transparent 52%);
 }
 .btn:active { transform: scale(.975); filter: brightness(1.07); }
 .btn .i { position: relative; }
-.btn.green { background: linear-gradient(150deg, #2ecb7c, #13894f); box-shadow: 0 6px 18px rgba(23,160,92,.34), inset 0 1px 0 rgba(255,255,255,.34); }
-.btn.blue { background: linear-gradient(150deg, #4f95ef, #1f52b8); box-shadow: 0 6px 18px rgba(47,111,219,.34), inset 0 1px 0 rgba(255,255,255,.34); }
-.btn.danger { background: linear-gradient(150deg, #f4657f, #c02444); box-shadow: 0 6px 18px rgba(224,64,95,.34), inset 0 1px 0 rgba(255,255,255,.34); }
+.btn.green { background: linear-gradient(150deg, color-mix(in srgb, var(--green) 80%, var(--lighten)), color-mix(in srgb, var(--green) 78%, var(--chart-shadow))); box-shadow: 0 6px 18px color-mix(in srgb, var(--green) 34%, transparent), inset 0 1px 0 var(--gloss); }
+.btn.blue { background: linear-gradient(150deg, color-mix(in srgb, var(--blue) 80%, var(--lighten)), color-mix(in srgb, var(--blue) 74%, var(--chart-shadow))); box-shadow: 0 6px 18px color-mix(in srgb, var(--blue) 34%, transparent), inset 0 1px 0 var(--gloss); }
+.btn.danger { background: linear-gradient(150deg, color-mix(in srgb, var(--red) 82%, var(--lighten)), color-mix(in srgb, var(--red) 76%, var(--chart-shadow))); box-shadow: 0 6px 18px color-mix(in srgb, var(--red) 34%, transparent), inset 0 1px 0 var(--gloss); }
 .btn.subtle {
     background: var(--field); color: var(--primary);
     border: 1px solid var(--hair);
@@ -396,9 +452,9 @@ input:focus, select:focus, textarea:focus {
 .avi {
     width: 31px; height: 31px; border-radius: 11px; flex-shrink: 0;
     display: inline-flex; align-items: center; justify-content: center;
-    font-family: var(--num); font-size: 11.5px; font-weight: 800; color: #fff;
+    font-family: var(--num); font-size: 11.5px; font-weight: 800; color: var(--on-accent);
     letter-spacing: -.2px;
-    box-shadow: 0 3px 9px rgba(13,21,38,.2), inset 0 1px 0 rgba(255,255,255,.4);
+    box-shadow: 0 3px 9px var(--sh-cast), inset 0 1px 0 var(--gloss);
 }
 .avi.sm { width: 26px; height: 26px; border-radius: 9px; font-size: 10px; }
 .avi.lg { width: 58px; height: 58px; border-radius: 20px; font-size: 20px; }
@@ -444,7 +500,7 @@ input:focus, select:focus, textarea:focus {
 .mini-toggle.sel.on {
     background: linear-gradient(150deg, var(--strong-2), var(--strong));
     border-color: transparent; color: var(--strong-fg);
-    box-shadow: 0 3px 10px color-mix(in srgb, var(--strong-2) 38%, transparent), inset 0 1px 0 rgba(255,255,255,.3);
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--strong-2) 38%, transparent), inset 0 1px 0 var(--gloss);
 }
 .mini-btn {
     width: 35px; height: 35px; flex-shrink: 0; font-family: inherit;
@@ -467,11 +523,11 @@ input:focus, select:focus, textarea:focus {
     width: 23px; height: 23px; border: 1px solid var(--hair); border-radius: 8px;
     background: var(--field);
     display: inline-flex; align-items: center; justify-content: center;
-    color: #fff; transition: all .18s var(--ease);
+    color: var(--on-accent); transition: all .18s var(--ease);
 }
 .guest-check .box .i { width: 15px; height: 15px; vertical-align: 0; }
 .guest-check .box.on {
-    background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 85%, #fff), var(--accent));
+    background: linear-gradient(150deg, color-mix(in srgb, var(--accent) 85%, var(--lighten)), var(--accent));
     border-color: transparent;
     box-shadow: 0 3px 9px color-mix(in srgb, var(--accent) 42%, transparent);
 }
@@ -519,8 +575,8 @@ input:focus, select:focus, textarea:focus {
 .pod .crown { height: 22px; margin-bottom: 3px; }
 .pod .crown .i { width: 21px; height: 21px; vertical-align: 0; }
 .pod.p1 .crown .i { color: var(--gold); }
-.pod.p2 .crown .i { color: #a9b4c4; }
-.pod.p3 .crown .i { color: #c98d5a; }
+.pod.p2 .crown .i { color: var(--medal-2flat); }
+.pod.p3 .crown .i { color: var(--medal-3flat); }
 .pod .avi { margin: 0 auto 7px; }
 .pod .pname {
     font-size: 12.5px; font-weight: 750; line-height: 1.25;
@@ -532,12 +588,12 @@ input:focus, select:focus, textarea:focus {
     margin-top: 8px; border-radius: 14px 14px 7px 7px;
     display: flex; align-items: flex-start; justify-content: center;
     padding-top: 7px; font-family: var(--num); font-weight: 850; font-size: 14px;
-    box-shadow: inset 0 1px 0 rgba(255,255,255,.6), 0 6px 16px rgba(13,21,38,.14);
+    box-shadow: inset 0 1px 0 var(--gloss-strong), 0 6px 16px var(--sh-cast-soft);
 }
-.pod.p1 .plinth { height: 56px; background: linear-gradient(168deg, #ffe89a, #d99f0d); color: #6a4a04; }
-.pod.p2 .plinth { height: 42px; background: linear-gradient(168deg, #f0f3f8, #b3bdca); color: #46505e; }
-.pod.p3 .plinth { height: 33px; background: linear-gradient(168deg, #f6cda3, #c9884f); color: #5f350e; }
-.pod.p1 .avi { width: 58px; height: 58px; border-radius: 20px; font-size: 20px; box-shadow: 0 8px 22px color-mix(in srgb, var(--gold) 48%, transparent), inset 0 1px 0 rgba(255,255,255,.45); }
+.pod.p1 .plinth { height: 56px; background: linear-gradient(168deg, var(--medal-1a), var(--medal-1b)); color: var(--medal-1ink); }
+.pod.p2 .plinth { height: 42px; background: linear-gradient(168deg, var(--medal-2a), var(--medal-2b)); color: var(--medal-2ink); }
+.pod.p3 .plinth { height: 33px; background: linear-gradient(168deg, var(--medal-3a), var(--medal-3b)); color: var(--medal-3ink); }
+.pod.p1 .avi { width: 58px; height: 58px; border-radius: 20px; font-size: 20px; box-shadow: 0 8px 22px color-mix(in srgb, var(--gold) 48%, transparent), inset 0 1px 0 var(--gloss-strong); }
 .pod.p1 .ppts { font-size: 20px; }
 
 /* ============================================================
@@ -581,9 +637,9 @@ input:focus, select:focus, textarea:focus {
     display: inline-flex; align-items: center; justify-content: center;
     font-family: var(--num); font-weight: 850; font-size: 12px; flex-shrink: 0;
 }
-.lb-rank.r1 { background: linear-gradient(160deg, #ffe89a, #d99f0d); color: #5f4204; box-shadow: inset 0 1px 0 rgba(255,255,255,.5); }
-.lb-rank.r2 { background: linear-gradient(160deg, #f0f3f8, #b3bdca); color: #414b58; box-shadow: inset 0 1px 0 rgba(255,255,255,.6); }
-.lb-rank.r3 { background: linear-gradient(160deg, #f6cda3, #c9884f); color: #5b330d; box-shadow: inset 0 1px 0 rgba(255,255,255,.5); }
+.lb-rank.r1 { background: linear-gradient(160deg, var(--medal-1a), var(--medal-1b)); color: var(--medal-1ink); box-shadow: inset 0 1px 0 var(--gloss-strong); }
+.lb-rank.r2 { background: linear-gradient(160deg, var(--medal-2a), var(--medal-2b)); color: var(--medal-2ink); box-shadow: inset 0 1px 0 var(--gloss-strong); }
+.lb-rank.r3 { background: linear-gradient(160deg, var(--medal-3a), var(--medal-3b)); color: var(--medal-3ink); box-shadow: inset 0 1px 0 var(--gloss-strong); }
 .lb-name { flex: 1; font-weight: 650; font-size: 14.5px; }
 .lb-pts { font-family: var(--num); font-weight: 850; font-size: 16px; letter-spacing: -.3px; }
 .lb-sub { font-size: 11px; color: var(--muted); font-weight: 600; }
@@ -609,7 +665,7 @@ input:focus, select:focus, textarea:focus {
 .lb-view button.on, .lb-sort button.on {
     background: linear-gradient(150deg, var(--strong-2), var(--strong));
     color: var(--strong-fg);
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--strong-2) 36%, transparent), inset 0 1px 0 rgba(255,255,255,.3);
+    box-shadow: 0 4px 12px color-mix(in srgb, var(--strong-2) 36%, transparent), inset 0 1px 0 var(--gloss);
 }
 .lb-table-wrap {
     overflow-x: auto; -webkit-overflow-scrolling: touch;
@@ -631,7 +687,7 @@ input:focus, select:focus, textarea:focus {
     text-align: left; white-space: normal;
     background: var(--glass-solid); padding-left: 0;
     min-width: 154px; max-width: 190px;
-    box-shadow: 10px 0 10px -10px rgba(13,21,38,.3);
+    box-shadow: 10px 0 10px -10px var(--sh-col);
 }
 .lb-table td.col-name { font-weight: 650; }
 .lb-table .name-cell { display: flex; align-items: center; gap: 8px; padding-right: 10px; }
@@ -668,7 +724,7 @@ input:focus, select:focus, textarea:focus {
 .bump-wk { fill: var(--text); font-size: 11px; font-weight: 700; font-family: inherit; }
 .bump-date { fill: var(--muted); font-size: 9px; font-family: inherit; }
 .bump-rank { fill: var(--muted); font-size: 11px; font-weight: 700; font-family: inherit; }
-.bump-pill-txt { font-family: inherit; font-weight: 700; font-size: 11px; fill: #fff; cursor: pointer; }
+.bump-pill-txt { font-family: inherit; font-weight: 700; font-size: 11px; fill: var(--chart-pill-ink); cursor: pointer; }
 .bump-medal { font-family: var(--num); font-weight: 800; font-size: 9.5px; }
 .bump-dot { cursor: pointer; transition: opacity .18s ease; }
 
@@ -719,7 +775,7 @@ input:focus, select:focus, textarea:focus {
     font-family: var(--num); font-size: 12px; font-weight: 850; letter-spacing: -.2px;
     padding: 5px 11px; border-radius: 999px;
     background: linear-gradient(150deg, var(--strong-2), var(--strong)); color: var(--strong-fg);
-    box-shadow: 0 3px 10px color-mix(in srgb, var(--strong-2) 34%, transparent), inset 0 1px 0 rgba(255,255,255,.3);
+    box-shadow: 0 3px 10px color-mix(in srgb, var(--strong-2) 34%, transparent), inset 0 1px 0 var(--gloss);
 }
 .wk-date { font-size: 12.5px; color: var(--muted); font-weight: 650; }
 
@@ -803,14 +859,14 @@ textarea {
     position: relative;
     width: 64px; height: 64px; margin: 0 auto 15px; border-radius: 22px;
     display: flex; align-items: center; justify-content: center;
-    font-family: var(--num); font-size: 24px; font-weight: 850; color: #fff; letter-spacing: -1px;
+    font-family: var(--num); font-size: 24px; font-weight: 850; color: var(--hdr-fg); letter-spacing: -1px;
     background: linear-gradient(150deg, var(--hdr-3), var(--hdr-1));
-    box-shadow: 0 12px 28px color-mix(in srgb, var(--hdr-2) 48%, transparent), inset 0 1px 0 rgba(255,255,255,.45);
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--hdr-2) 48%, transparent), inset 0 1px 0 var(--hdr-spec);
     overflow: hidden;
 }
 .login-box .logo::after {
     content: ''; position: absolute; inset: 0;
-    background: linear-gradient(112deg, rgba(255,255,255,.34) 0%, transparent 46%);
+    background: linear-gradient(112deg, var(--hdr-sheen) 0%, transparent 46%);
 }
 .login-box h2 { margin: 0 0 4px; color: var(--text); font-size: 21px; font-weight: 850; letter-spacing: -.4px; }
 .login-box .sub { font-size: 13px; color: var(--muted); margin-bottom: 20px; }
@@ -1101,10 +1157,26 @@ function cycleTheme() {
     root.dataset.themePref = next;
     try { localStorage.setItem('thuruppu-theme', next); } catch (e) {}
     applyTheme();
+    render(); // charts bake resolved colours in, so redraw them
     toast(next === 'auto' ? 'Theme follows your device' : next === 'light' ? 'Light theme' : 'Dark theme');
 }
 if (window.matchMedia) {
-    try { window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme); } catch (e) {}
+    try {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+            applyTheme();
+            render(); // charts bake resolved colours in, so redraw them
+        });
+    } catch (e) {}
+}
+// Resolve a theme token to a real colour. SVG presentation attributes can't
+// rely on var(), so the chart builders read the palette through this.
+function cssVar(name, fallback) {
+    const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+    return v || fallback || '';
+}
+// The categorical series palette, in theme-appropriate colours.
+function chartPalette() {
+    return ['--c1', '--c2', '--c3', '--c4', '--c5', '--c6', '--c7', '--c8'].map(n => cssVar(n));
 }
 
 /* ---------- player avatars ---------- */
@@ -1120,9 +1192,13 @@ function initials(name) {
     if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
     return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 }
+// Only the hue comes from the name; saturation and lightness are theme tokens,
+// so avatars stay legible against whichever surface they land on.
 function avatarHtml(name, cls) {
     const h = nameHue(name);
-    const bg = 'linear-gradient(140deg, hsl(' + h + ' 62% 56%), hsl(' + ((h + 32) % 360) + ' 60% 44%))';
+    const bg = 'linear-gradient(140deg,' +
+        ' hsl(' + h + ' var(--avi-s1) var(--avi-l1)),' +
+        ' hsl(' + ((h + 32) % 360) + ' var(--avi-s2) var(--avi-l2)))';
     return '<span class="avi ' + (cls || '') + '" style="background:' + bg + '" aria-hidden="true">' +
         esc(initials(name)) + '</span>';
 }
@@ -1633,9 +1709,10 @@ function bumpChartHtml(season, leaderboard) {
     const maxRank = names.length;
     // Validated categorical slots (dataviz palette); players past the 8th recede
     // to a muted "other" gray so the leaders stay legible.
-    const PAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
+    const PAL = chartPalette();
+    const MUTE = cssVar('--c-mute');
     const colored = idx => idx < PAL.length;
-    const colorFor = idx => colored(idx) ? PAL[idx] : '#c2c6cc';
+    const colorFor = idx => colored(idx) ? PAL[idx] : MUTE;
     
     const hl = state.lbHighlight;
 
@@ -1653,7 +1730,7 @@ function bumpChartHtml(season, leaderboard) {
 
     let svg = '<svg class="bump-svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Player rank by week">';
     svg += '<defs><filter id="bumpSh" x="-20%" y="-25%" width="140%" height="150%">' +
-        '<feDropShadow dx="0" dy="1.2" stdDeviation="1.4" flood-color="#0b1220" flood-opacity="0.22"/></filter></defs>';
+        '<feDropShadow dx="0" dy="1.2" stdDeviation="1.4" flood-color="' + cssVar('--chart-shadow') + '" flood-opacity="0.22"/></filter></defs>';
 
     // Plot surface + alternating row stripes, with the leader row tinted gold.
     svg += '<rect class="bump-plot" x="' + plotX0 + '" y="' + plotY0 + '" width="' + (plotX1 - plotX0) +
@@ -1699,7 +1776,7 @@ function bumpChartHtml(season, leaderboard) {
             const isEdge = k === 0 || k === pts.length - 1;
             const rr = isHl ? 5.5 : (isEdge ? 4.4 : 3.4);
             svg += '<circle class="bump-dot" cx="' + pt.x + '" cy="' + pt.y + '" r="' + rr +
-                '" fill="' + col + '" stroke="var(--card)" stroke-width="1.6" opacity="' + op + '" onclick="toggleChartHighlight(' + arg + ')">' +
+                '" fill="' + col + '" stroke="' + cssVar('--chart-dot-ring') + '" stroke-width="1.6" opacity="' + op + '" onclick="toggleChartHighlight(' + arg + ')">' +
                 '<title>' + esc(p.name) + ' · W' + season[pt.wi].week + ' · rank ' + pt.r + ' · ' + round2(pt.cp) + ' pts</title></circle>';
         });
 
@@ -1707,20 +1784,20 @@ function bumpChartHtml(season, leaderboard) {
         // medal disc drawn in SVG (gold / silver / bronze) ahead of the name.
         const last = pts[pts.length - 1];
         const isMedal = idx < 3;
-        const MEDAL = ['#e8b60d', '#c2cbd8', '#cd8f56'];
+        const MEDAL = [cssVar('--medal-1flat'), cssVar('--medal-2flat'), cssVar('--medal-3flat')];
         const pillH = 20, discR = 7.2, discGap = isMedal ? discR * 2 + 5 : 0;
         const pillW = Math.round(p.name.length * 6.6 + 16 + discGap);
         const px = last.x + 11, py = last.y - pillH / 2;
-        const pillFill = colored(idx) ? col : '#6b7280';
+        const pillFill = colored(idx) ? col : cssVar('--c-pill-mute');
         const textX = px + (pillW + discGap) / 2;
         svg += '<g opacity="' + (dim ? 0.3 : 1) + '" onclick="toggleChartHighlight(' + arg + ')" style="cursor:pointer">' +
             '<rect x="' + px + '" y="' + py + '" width="' + pillW + '" height="' + pillH + '" rx="10" fill="' + pillFill + '"' +
             (isHl ? ' filter="url(#bumpSh)"' : '') + '/>' +
             (isMedal
                 ? '<circle cx="' + (px + 4 + discR) + '" cy="' + last.y + '" r="' + discR + '" fill="' + MEDAL[idx] +
-                  '" stroke="rgba(255,255,255,.65)" stroke-width="1"/>' +
+                  '" stroke="' + cssVar('--medal-ring') + '" stroke-width="1"/>' +
                   '<text class="bump-medal" x="' + (px + 4 + discR) + '" y="' + (last.y + 3.4) +
-                  '" text-anchor="middle" fill="#4a3708">' + (idx + 1) + '</text>'
+                  '" text-anchor="middle" fill="' + cssVar('--medal-1ink') + '">' + (idx + 1) + '</text>'
                 : '') +
             '<text class="bump-pill-txt" x="' + textX + '" y="' + (last.y + 4) + '" text-anchor="middle">' + esc(p.name) + '</text></g>';
     });
@@ -1762,9 +1839,10 @@ function netChartHtml(season, leaderboard) {
     if (minV === 0 && maxV === 0) {
         return '<div class="hint" style="margin-top:8px;">No King Maker / Joker rounds recorded yet &mdash; the Net trend appears once you log some 12-0 rounds.</div>';
     }
-    const PAL = ['#2a78d6', '#1baf7a', '#eda100', '#008300', '#4a3aa7', '#e34948', '#e87ba4', '#eb6834'];
+    const PAL = chartPalette();
+    const MUTE = cssVar('--c-mute');
     const colored = idx => idx < PAL.length;
-    const colorFor = idx => colored(idx) ? PAL[idx] : '#c2c6cc';
+    const colorFor = idx => colored(idx) ? PAL[idx] : MUTE;
     const hl = state.lbHighlight;
 
     const step = niceIntStep(Math.max(0, maxV) - Math.min(0, minV), 4);
@@ -1784,11 +1862,11 @@ function netChartHtml(season, leaderboard) {
 
     let svg = '<svg class="bump-svg" viewBox="0 0 ' + W + ' ' + H + '" width="' + W + '" height="' + H + '" role="img" aria-label="Net by week">';
     svg += '<defs><filter id="netSh" x="-20%" y="-25%" width="140%" height="150%">' +
-        '<feDropShadow dx="0" dy="1.2" stdDeviation="1.4" flood-color="#0b1220" flood-opacity="0.22"/></filter></defs>';
+        '<feDropShadow dx="0" dy="1.2" stdDeviation="1.4" flood-color="' + cssVar('--chart-shadow') + '" flood-opacity="0.22"/></filter></defs>';
     // Plot surface + positive(green)/negative(red) bands around the zero line.
     svg += '<rect class="bump-plot" x="' + plotX0 + '" y="' + (topM - 6) + '" width="' + (plotX1 - plotX0) + '" height="' + (plotH + 12) + '" rx="12"/>';
-    svg += '<rect x="' + plotX0 + '" y="' + Y(hi) + '" width="' + (plotX1 - plotX0) + '" height="' + Math.max(0, y0 - Y(hi)) + '" fill="#27ae60" opacity="0.06"/>';
-    svg += '<rect x="' + plotX0 + '" y="' + y0 + '" width="' + (plotX1 - plotX0) + '" height="' + Math.max(0, Y(lo) - y0) + '" fill="#e74c3c" opacity="0.06"/>';
+    svg += '<rect x="' + plotX0 + '" y="' + Y(hi) + '" width="' + (plotX1 - plotX0) + '" height="' + Math.max(0, y0 - Y(hi)) + '" fill="' + cssVar('--chart-pos') + '" opacity="0.08"/>';
+    svg += '<rect x="' + plotX0 + '" y="' + y0 + '" width="' + (plotX1 - plotX0) + '" height="' + Math.max(0, Y(lo) - y0) + '" fill="' + cssVar('--chart-neg') + '" opacity="0.08"/>';
     // Value gridlines + labels (zero line drawn bold).
     for (let v = lo; v <= hi; v += step) {
         const y = Y(v);
@@ -1827,14 +1905,14 @@ function netChartHtml(season, leaderboard) {
             const rr = isHl ? 5.5 : (isEdge ? 4.4 : 3.4);
             const sv = pt.v > 0 ? '+' + pt.v : pt.v;
             svg += '<circle class="bump-dot" cx="' + pt.x + '" cy="' + pt.y + '" r="' + rr +
-                '" fill="' + col + '" stroke="var(--card)" stroke-width="1.6" opacity="' + op + '" onclick="toggleChartHighlight(' + arg + ')">' +
+                '" fill="' + col + '" stroke="' + cssVar('--chart-dot-ring') + '" stroke-width="1.6" opacity="' + op + '" onclick="toggleChartHighlight(' + arg + ')">' +
                 '<title>' + esc(p.name) + ' · W' + season[pt.wi].week + ' · King Maker ' + pt.k + ', Jokers ' + pt.j + ', lifted ' + pt.c + ' → Net ' + sv + '</title></circle>';
         });
         const last = pts[pts.length - 1];
         const sv = last.v > 0 ? '+' + last.v : String(last.v);
         const tag = p.name + '  ' + sv;
         const pillW = Math.round(tag.length * 6.6 + 16), pillH = 20, px = last.x + 11, py = last.y - pillH / 2;
-        const pillFill = colored(idx) ? col : '#6b7280';
+        const pillFill = colored(idx) ? col : cssVar('--c-pill-mute');
         svg += '<g opacity="' + (dim ? 0.3 : 1) + '" onclick="toggleChartHighlight(' + arg + ')" style="cursor:pointer">' +
             '<rect x="' + px + '" y="' + py + '" width="' + pillW + '" height="' + pillH + '" rx="10" fill="' + pillFill + '"' +
             (isHl ? ' filter="url(#netSh)"' : '') + '/>' +
@@ -2150,7 +2228,7 @@ function weekEditHtml(w) {
         return '<div class="tally-row">' + avatarHtml(p, 'sm') + '<span class="tname">' + esc(p) + '</span>' +
             '<input type="number" step="any" placeholder="' + ph + '" value="' + esc(state.editBuf.points[p] || '') + '" oninput="setEditPoints(' + arg + ', this.value)"></div>';
     }).join('');
-    return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--border);">' +
+    return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--hair);">' +
         '<label>Edit points for Week ' + w.week + '</label>' +
         teamScoreRow + rows +
         koEditorHtml('edit', w.players.team1 || [], w.players.team2 || []) +
