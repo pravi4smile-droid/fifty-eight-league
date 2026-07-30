@@ -508,11 +508,17 @@ input:focus, select:focus, textarea:focus {
     display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
 }
 .roster-item .lb-sub { margin-left: auto; padding-right: 4px; }
+/* Everything after a player's first word: lighter and smaller so the leading
+   name carries the row. em-based so it tracks whatever size it sits in. */
+.ln { font-weight: 500; font-size: .84em; color: var(--muted); letter-spacing: 0; }
+
+/* Guest marker: an amber person glyph rather than a "GUEST" pill, so it sits
+   inline beside the name instead of pushing it onto another line. */
 .guest-tag {
-    font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .4px;
-    background: var(--tint-amber); color: var(--on-amber);
-    padding: 2px 8px; border-radius: 999px; flex-shrink: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--on-amber); flex-shrink: 0; vertical-align: -2px;
 }
+.guest-tag .i { width: 13px; height: 13px; vertical-align: 0; }
 .mini-toggle {
     display: inline-flex; align-items: center; gap: 5px;
     min-height: 33px; padding: 5px 12px; font-family: inherit;
@@ -1044,6 +1050,9 @@ const ICON_SET = {
     calendar: { raw: '<rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/>' },
     users: ['M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2', 'M22 21v-2a4 4 0 0 0-3-3.87', 'M16 3.13a4 4 0 0 1 0 7.75'],
     usersRaw: '<circle cx="9" cy="7" r="4"/>',
+    // A single figure — the guest marker, kept simple so it stays legible at 13px.
+    guest: ['M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'],
+    guestRaw: '<circle cx="12" cy="7" r="4"/>',
     database: { raw: '<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4.03 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4.03 3 9 3s9-1.34 9-3"/>' },
     logOut: ['M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4', 'm16 17 5-5-5-5', 'M21 12H9'],
     copy: { raw: '<rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>' },
@@ -1254,6 +1263,13 @@ function nameHue(name) {
     for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) % 360;
     return h;
 }
+// Render a name with everything after the first word de-emphasised, so the
+// distinguishing part reads first: "Rappai Uncle" -> Rappai + small grey Uncle.
+function nameHtml(name) {
+    const parts = String(name).trim().split(/\s+/).filter(Boolean);
+    if (parts.length < 2) return esc(name);
+    return esc(parts[0]) + ' <span class="ln">' + esc(parts.slice(1).join(' ')) + '</span>';
+}
 function initials(name) {
     const parts = String(name).trim().split(/\s+/).filter(Boolean);
     if (!parts.length) return '?';
@@ -1273,7 +1289,11 @@ function avatarHtml(name, cls) {
 
 /* ---------- roster ---------- */
 function isGuest(name) { return (state.data.guests || []).includes(name); }
-function guestTag(name) { return isGuest(name) ? ' <span class="guest-tag">Guest</span>' : ''; }
+function guestTag(name) {
+    return isGuest(name)
+        ? ' <span class="guest-tag" title="Guest" role="img" aria-label="Guest">' + icon('guest') + '</span>'
+        : '';
+}
 function toggleNewGuest() { state.newGuest = !state.newGuest; renderRosterTab(); }
 function toggleGuest(name) {
     if (!state.data.guests) state.data.guests = [];
@@ -1648,7 +1668,7 @@ function renderTeamsTab() {
         const on = !!state.shuffle.picked[p];
         return '<div class="roster-item' + (on ? ' picked' : '') + '">' +
             avatarHtml(p) +
-            '<span class="rname">' + esc(p) + guestTag(p) +
+            '<span class="rname">' + nameHtml(p) + guestTag(p) +
             '<span class="lb-sub">' + round2(pts[p] || 0) + ' pts</span></span>' +
             '<button class="mini-toggle go' + (on ? ' on' : '') + '" onclick="toggleShufflePick(' + arg + ')">' +
             (on ? icon('check') + 'Playing' : 'Pick') + '</button>' +
@@ -1701,7 +1721,7 @@ function renderRosterTab() {
             const g = isGuest(p);
             return '<div class="roster-item">' +
                 avatarHtml(p) +
-                '<span class="rname">' + esc(p) + (g ? ' <span class="guest-tag">Guest</span>' : '') + '</span>' +
+                '<span class="rname">' + nameHtml(p) + guestTag(p) + '</span>' +
                 '<button class="mini-toggle' + (g ? ' on' : '') + '" title="Toggle guest" onclick="toggleGuest(' + arg + ')">Guest</button>' +
                 '<button class="mini-btn" title="Rename" onclick="renameRosterPlayer(' + arg + ')">' + icon('pencil') + '</button>' +
                 '</div>';
@@ -1996,7 +2016,7 @@ function pastFormHtml() {
         const arg = jsArg(p);
         return '<div class="past-row">' +
             avatarHtml(p, 'sm') +
-            '<span class="past-name">' + esc(p) + '</span>' +
+            '<span class="past-name" title="' + esc(p) + '">' + nameHtml(p) + '</span>' +
             '<div class="seg2 past-seg">' +
             '<button class="' + (t === 'team1' ? 'on-t1' : '') + '" onclick="setPastTeam(' + arg + ',\'team1\')">T1</button>' +
             '<button class="' + (t === 'team2' ? 'on-t2' : '') + '" onclick="setPastTeam(' + arg + ',\'team2\')">T2</button>' +
@@ -2029,7 +2049,7 @@ function pastFormHtml() {
 // A team's players as small rounded name chips.
 function playerChips(arr) {
     if (!arr || !arr.length) return '<span class="tp-none">&mdash;</span>';
-    return arr.map(n => '<span class="tp">' + esc(n) + '</span>').join('');
+    return arr.map(n => '<span class="tp" title="' + esc(n) + '">' + nameHtml(n) + '</span>').join('');
 }
 
 /* Top three by season points, shown on a gold/silver/bronze plinth.
@@ -2047,7 +2067,7 @@ function podiumHtml(byPoints) {
         return '<div class="pod p' + n + '">' +
             '<div class="crown">' + crowns[n] + '</div>' +
             avatarHtml(p.name, n === 1 ? 'lg' : '') +
-            '<div class="pname" title="' + esc(p.name) + '">' + esc(p.name) + '</div>' +
+            '<div class="pname" title="' + esc(p.name) + '">' + nameHtml(p.name) + '</div>' +
             '<div class="ppts" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(p.points) + '</div>' +
             '<div class="psub">' + p.ppgw.toFixed(1) + ' / week</div>' +
             '<div class="plinth">' + n + '</div>' +
@@ -2147,7 +2167,7 @@ function renderSeasonTab() {
                     '<td class="col-name"><div class="name-cell">' +
                     '<span class="lb-rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '') + '">' + (i + 1) + '</span>' +
                     avatarHtml(p.name, 'sm') +
-                    '<span class="nm"><span class="nt"><span>' + esc(p.name) + '</span>' + guestTag(p.name) + '</span>' +
+                    '<span class="nm"><span class="nt"><span>' + nameHtml(p.name) + '</span>' + guestTag(p.name) + '</span>' +
                     '<span class="lb-sub">' + p.roundWins + ' wins \u00b7 ' + p.weeks + ' wks</span></span>' +
                     '</div></td>' +
                     '<td class="' + (sortBy === 'kings' ? 'sorted' : '') + '">' + (p.kings || 0) + '</td>' +
@@ -2181,7 +2201,7 @@ function renderSeasonTab() {
                         return '<td style="color:' + col + ';font-weight:700">' + round2(c.base) + '</td>';
                     }).join('');
                     return '<tr><td class="col-name"><div class="name-cell">' + avatarHtml(pl.name, 'sm') +
-                        '<span class="nm"><span class="nt"><span>' + esc(pl.name) + '</span>' + guestTag(pl.name) + '</span></span></div></td>' +
+                        '<span class="nm"><span class="nt"><span>' + nameHtml(pl.name) + '</span>' + guestTag(pl.name) + '</span></span></div></td>' +
                         cells + '<td class="lb-pts-cell" style="color:' + (total >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(total) + '</td></tr>';
                 }).join('') +
                 '</tbody></table></div>' +
@@ -2277,7 +2297,7 @@ function weekEditHtml(w) {
     const rows = weekPlayers(w).map(p => {
         const arg = jsArg(p);
         const ph = isManual ? 'team' : '0';
-        return '<div class="tally-row">' + avatarHtml(p, 'sm') + '<span class="tname">' + esc(p) + '</span>' +
+        return '<div class="tally-row">' + avatarHtml(p, 'sm') + '<span class="tname">' + nameHtml(p) + '</span>' +
             '<input type="number" step="any" placeholder="' + ph + '" value="' + esc(state.editBuf.points[p] || '') + '" oninput="setEditPoints(' + arg + ', this.value)"></div>';
     }).join('');
     return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--hair);">' +
