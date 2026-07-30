@@ -686,6 +686,7 @@ input:focus, select:focus, textarea:focus {
     gap: 4px; padding: 4px; border-radius: var(--r-lg);
     background: var(--glass-2); border: 1px solid var(--hair);
     box-shadow: inset 0 1px 0 var(--spec);
+    flex-wrap: nowrap;
 }
 .lb-sort button, .lb-view button {
     flex: 1 1 128px; min-height: 34px; padding: 6px 8px; font-family: inherit;
@@ -694,7 +695,12 @@ input:focus, select:focus, textarea:focus {
     font-weight: 700; font-size: 11.5px; color: var(--muted); cursor: pointer;
     white-space: nowrap; transition: all .2s var(--ease);
 }
+.lb-view button { flex: 1 1 0; min-width: 0; font-size: clamp(9.5px, 2.5vw, 11.5px); padding: 6px 4px; }
 .lb-view button .i { width: 15px; height: 15px; vertical-align: 0; }
+@media (max-width: 560px) {
+    .lb-view { gap: 2px; padding: 3px; }
+    .lb-view button .i { display: none; }
+}
 .lb-sort button { flex: 0 0 auto; border: 1px solid var(--hair); background: var(--field); }
 .lb-view button.on, .lb-sort button.on {
     background: linear-gradient(150deg, var(--strong-2), var(--strong));
@@ -783,18 +789,17 @@ input:focus, select:focus, textarea:focus {
 .matchup .team::before { content: ''; position: absolute; inset: 0 0 auto; height: 3px; }
 .matchup .team.t1::before { background: linear-gradient(90deg, var(--blue), color-mix(in srgb, var(--blue) 40%, transparent)); }
 .matchup .team.t2::before { background: linear-gradient(90deg, color-mix(in srgb, var(--red) 40%, transparent), var(--red)); }
-/* The winner is marked with a green edge rather than a background wash — a
-   full-card tint would sit under both panels and muddy their colours. */
-.matchup .team.win {
-    border-color: color-mix(in srgb, var(--green) 60%, transparent);
-    box-shadow: inset 0 1px 0 var(--spec), 0 0 0 1.5px color-mix(in srgb, var(--green) 22%, transparent);
-}
-/* Row 1: the team label, centred across both columns. */
+/* Row 1: the team label, centred across both columns. The winner is marked by
+   a trophy beside that label rather than an edge treatment on the box. */
 .matchup .team .tlabel {
     grid-area: 1 / 1 / 2 / 3; text-align: center;
     font-size: 10px; font-weight: 800;
     text-transform: uppercase; letter-spacing: .4px;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    display: flex; align-items: center; justify-content: center; gap: 4px;
+}
+.matchup .team .tlabel .i-win {
+    flex: none; width: 12px; height: 12px; color: var(--gold);
 }
 /* Row 2, outer column: the roster on its own neutral panel. */
 .matchup .team .tplayers {
@@ -2210,7 +2215,7 @@ function renderSeasonTab() {
             html += '<div class="card"><h3>' + icon('trophy') + 'Player leaderboard</h3>' +
                 '<div class="lb-view">' +
                 '<button class="' + (view === 'ranking' ? 'on' : '') + '" onclick="setLbView(\'ranking\')">Ranking</button>' +
-                '<button class="' + (view === 'weekly' ? 'on' : '') + '" onclick="setLbView(\'weekly\')">Weekly breakdown</button>' +
+                '<button class="' + (view === 'weekly' ? 'on' : '') + '" onclick="setLbView(\'weekly\')">Weekly</button>' +
                 '<button class="' + (view === 'chart' ? 'on' : '') + '" onclick="setLbView(\'chart\')">' + icon('lineChart') + 'Position chart</button>' +
                 '<button class="' + (view === 'net' ? 'on' : '') + '" onclick="setLbView(\'net\')">' + icon('barChart') + 'Net trend</button>' +
                 '</div>' +
@@ -2220,19 +2225,25 @@ function renderSeasonTab() {
         }
 
         const koTotal = season.reduce((n, w) => n + ((w.koRounds || []).length), 0);
-        const roundsTotal = leaderboard.reduce((n, p) => n + p.roundWins, 0);
+        // Total rounds played: the 12-0 rounds for a week that recorded them,
+        // otherwise the week's round log (one synthetic round for a manual week).
+        const roundsTotal = season.reduce((n, w) => {
+            const ko = w.koRounds || [];
+            return n + (w.manual && ko.length ? ko.length : (w.rounds || []).length);
+        }, 0);
         const lastDate = season.length ? season[season.length - 1].date : '';
         const tile = (v, l, cls, ic) => '<div class="stat-tile ' + cls + '"><div class="sv">' + (ic ? icon(ic) : '') + '<span>' + v + '</span></div><div class="sl">' + l + '</div></div>';
         html += '<div class="card"><h3>' + icon('barChart') + 'Season stats</h3>' +
             '<div class="stat-grid">' +
             tile(season.length, 'Game days', 'blue', 'calendar') +
             tile(leaderboard.length, 'Players', 'green', 'users') +
-            tile(roundsTotal, 'Round wins', 'amber', 'trophy') +
+            tile(roundsTotal, 'Rounds', 'amber', 'trophy') +
             tile(koTotal, '12-0 rounds', 'violet', 'crown') +
             '</div>' +
             (lastDate ? '<div class="hint" style="text-align:center;">Last game day &middot; ' + esc(lastDate) + '</div>' : '') +
             '</div>';
 
+        const winIcon = icon('trophy', 'i-win');
         for (let i = season.length - 1; i >= 0; i--) {
             const w = season[i];
             const rounds = w.rounds || [];
@@ -2269,11 +2280,11 @@ function renderSeasonTab() {
                 (editing ? '' : '<button class="btn small subtle" onclick="editWeekOpen(' + i + ')">' + icon('pencil') + 'Edit points</button>') +
                 '</span></div>' +
                 '<div class="matchup">' +
-                '<div class="team t1' + (s1 > s2 ? ' win' : '') + '"><div class="tlabel">Team 1</div>' +
+                '<div class="team t1"><div class="tlabel">' + (s1 > s2 ? winIcon : '') + 'Team 1</div>' +
                 '<div class="tscore" style="color:var(--blue)">' + s1 + '</div>' +
                 '<div class="tplayers">' + t1names + '</div></div>' +
                 '<div class="vs">vs</div>' +
-                '<div class="team t2' + (s2 > s1 ? ' win' : '') + '"><div class="tlabel">Team 2</div>' +
+                '<div class="team t2"><div class="tlabel">' + (s2 > s1 ? winIcon : '') + 'Team 2</div>' +
                 '<div class="tscore" style="color:var(--red)">' + s2 + '</div>' +
                 '<div class="tplayers">' + t2names + '</div></div>' +
                 '</div>' +
