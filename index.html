@@ -674,6 +674,24 @@ input:focus, select:focus, textarea:focus {
 .lb-rank.r1 { background: linear-gradient(160deg, var(--medal-1a), var(--medal-1b)); color: var(--medal-1ink); box-shadow: inset 0 1px 0 var(--gloss-strong); }
 .lb-rank.r2 { background: linear-gradient(160deg, var(--medal-2a), var(--medal-2b)); color: var(--medal-2ink); box-shadow: inset 0 1px 0 var(--gloss-strong); }
 .lb-rank.r3 { background: linear-gradient(160deg, var(--medal-3a), var(--medal-3b)); color: var(--medal-3ink); box-shadow: inset 0 1px 0 var(--gloss-strong); }
+/* Rank movement vs. the standings before the latest week.
+   One base chip, reused in the table, on the podium and in the legend; the
+   caret icon points down and flips for a climb. */
+.mv {
+    display: inline-flex; align-items: center; gap: 1px; flex-shrink: 0;
+    font-family: var(--num); font-weight: 800; font-size: 10px; line-height: 1.5;
+    padding: 1px 5px; border-radius: 999px;
+}
+.mv .mv-i { width: 9px; height: 9px; vertical-align: 0; }
+.mv.up { color: var(--green); background: color-mix(in srgb, var(--green) 15%, transparent); padding-left: 3px; }
+.mv.up .mv-i { transform: rotate(180deg); }
+.mv.down { color: var(--red); background: color-mix(in srgb, var(--red) 15%, transparent); padding-left: 3px; }
+.mv.same { color: var(--muted); background: var(--tint-neutral); }
+.mv.new { color: var(--accent); background: color-mix(in srgb, var(--accent) 18%, transparent); font-size: 8.5px; letter-spacing: .4px; }
+.mv-legend { display: flex; align-items: center; gap: 5px; margin-top: 10px; }
+.mv-legend .mv { padding: 1px 4px; }
+.pod .pmove { display: flex; width: fit-content; margin: 3px auto 0; }
+
 .lb-name { flex: 1; font-weight: 650; font-size: 14.5px; }
 .lb-pts { font-family: var(--num); font-weight: 800; font-size: 16px; letter-spacing: -.3px; }
 .lb-sub { font-size: 11px; color: var(--muted); font-weight: 600; }
@@ -2057,9 +2075,77 @@ function playerChips(arr) {
     return arr.map(n => '<span class="tp" title="' + esc(n) + '">' + nameHtml(n) + '</span>').join('');
 }
 
+// ---------- Leaderboard aggregation ----------
+// Per-player totals over the given weeks. Called twice per render: once for the
+// whole season and once for the season minus its latest week, so each player's
+// rank movement can be read off the difference.
+function seasonStats(weeks) {
+    const stats = {};
+    function stat(p) {
+        if (!stats[p]) stats[p] = { points: 0, roundWins: 0, weeks: 0, tallied: false, kings: 0, jokers: 0, crossed: 0 };
+        return stats[p];
+    }
+    weeks.forEach(w => {
+        const t1 = (w.players && w.players.team1) || [];
+        const t2 = (w.players && w.players.team2) || [];
+        const ko = w.koRounds || [];
+        weekPlayers(w).forEach(p => stat(p).weeks++);
+        // Round wins: for a manually-entered week the recorded 12-0 rounds are
+        // its rounds (each is a win for its team); otherwise use the round log.
+        if (w.manual && ko.length) {
+            ko.forEach(r => (r.winner === 'team1' ? t1 : t2).forEach(p => stat(p).roundWins++));
+        } else {
+            (w.rounds || []).forEach(r => r.winnerPlayers.forEach(p => stat(p).roundWins++));
+        }
+        if (w.finalTally) Object.entries(w.finalTally).forEach(([p, v]) => { stat(p).points += v; stat(p).tallied = true; });
+        // King Maker / Joker badges from 12-0 rounds.
+        ko.forEach(r => {
+            const kings = r.winner === 'team1' ? t1 : t2;
+            const losers = r.winner === 'team1' ? t2 : t1;
+            kings.forEach(p => { stat(p).kings++; });
+            losers.forEach(p => { stat(p).jokers++; });
+            (r.crossed || []).forEach(p => { stat(p).crossed++; });
+        });
+    });
+    return stats;
+}
+// Net = King Maker - (Jokers received - Jokers lifted).
+const netOf = p => (p.kings || 0) - ((p.jokers || 0) - (p.crossed || 0));
+// Sortable leaderboard columns. Every column falls back to the default
+// tie-break chain: Points -> King Maker -> PPGW, then name.
+const LB_VAL = {
+    points: p => p.points,
+    kings: p => p.kings || 0,
+    jokers: p => p.jokers || 0,
+    crossed: p => p.crossed || 0,
+    net: p => netOf(p),
+    ppgw: p => p.ppgw
+};
+function rankList(stats, sortKeys) {
+    return Object.entries(stats)
+        .map(([name, s]) => ({ name, ...s, ppgw: (s.weeks ? s.points / s.weeks : 0) }))
+        .sort((a, b) => {
+            for (const k of sortKeys) { const d = LB_VAL[k](b) - LB_VAL[k](a); if (d) return d; }
+            return a.name.localeCompare(b.name);
+        });
+}
+// Places gained (+) or lost (-) since the week before last. `undefined` = no
+// comparison available, `null` = the player wasn't on the board before.
+function moveChip(delta, weekLabel, cls) {
+    if (delta === undefined) return '';
+    const c = 'mv ' + (cls || '');
+    if (delta === null) return '<span class="' + c + ' new" title="First appearance">NEW</span>';
+    const n = Math.abs(delta);
+    if (!n) return '<span class="' + c + ' same" title="No change after ' + weekLabel + '">–</span>';
+    const up = delta > 0;
+    return '<span class="' + c + (up ? ' up' : ' down') + '" title="' + (up ? 'Up ' : 'Down ') + n +
+        ' place' + (n > 1 ? 's' : '') + ' after ' + weekLabel + '">' + icon('caret', 'mv-i') + n + '</span>';
+}
+
 /* Top three by season points, shown on a gold/silver/bronze plinth.
-   Rendered 2nd–1st–3rd so the leader stands in the middle. */
-function podiumHtml(byPoints) {
+   Rendered 2nd–1st–3rd so the leader stands in the middle.
+   `moveFor(player, place)` optionally supplies each one's rank-movement chip. */
+function podiumHtml(byPoints, moveFor) {
     const top = byPoints.slice(0, 3);
     if (!top.length) return '';
     const order = top.length >= 3 ? [top[1], top[0], top[2]]
@@ -2073,6 +2159,7 @@ function podiumHtml(byPoints) {
             '<div class="crown">' + crowns[n] + '</div>' +
             avatarHtml(p.name, n === 1 ? 'lg' : '') +
             '<div class="pname" title="' + esc(p.name) + '">' + nameHtml(p.name) + '</div>' +
+            (moveFor ? moveFor(p, n) : '') +
             '<div class="ppts" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(p.points) + '</div>' +
             '<div class="psub">' + p.ppgw.toFixed(1) + ' / week</div>' +
             '<div class="plinth">' + n + '</div>' +
@@ -2093,62 +2180,32 @@ function renderSeasonTab() {
             '<strong style="display:block;color:var(--text);font-size:15px;">No game days yet</strong></div></div>';
     } else {
         // Per-player aggregates
-        const stats = {};
-        function stat(p) {
-            if (!stats[p]) stats[p] = { points: 0, roundWins: 0, weeks: 0, tallied: false, kings: 0, jokers: 0, crossed: 0 };
-            return stats[p];
-        }
-        season.forEach(w => {
-            const t1 = (w.players && w.players.team1) || [];
-            const t2 = (w.players && w.players.team2) || [];
-            const ko = w.koRounds || [];
-            weekPlayers(w).forEach(p => stat(p).weeks++);
-            // Round wins: for a manually-entered week the recorded 12-0 rounds are
-            // its rounds (each is a win for its team); otherwise use the round log.
-            if (w.manual && ko.length) {
-                ko.forEach(r => (r.winner === 'team1' ? t1 : t2).forEach(p => stat(p).roundWins++));
-            } else {
-                (w.rounds || []).forEach(r => r.winnerPlayers.forEach(p => stat(p).roundWins++));
-            }
-            if (w.finalTally) Object.entries(w.finalTally).forEach(([p, v]) => { stat(p).points += v; stat(p).tallied = true; });
-            // King Maker / Joker badges from 12-0 rounds.
-            ko.forEach(r => {
-                const kings = r.winner === 'team1' ? t1 : t2;
-                const losers = r.winner === 'team1' ? t2 : t1;
-                kings.forEach(p => { stat(p).kings++; });
-                losers.forEach(p => { stat(p).jokers++; });
-                (r.crossed || []).forEach(p => { stat(p).crossed++; });
-            });
-        });
-
-        const ppgw = p => p.weeks ? p.points / p.weeks : 0;
-        // Net = King Maker - (Jokers received - Jokers lifted).
-        const netOf = p => (p.kings || 0) - ((p.jokers || 0) - (p.crossed || 0));
-        // Sortable leaderboard columns. Every column falls back to the default
-        // tie-break chain: Points -> King Maker -> PPGW, then name.
-        const lbVal = {
-            points: p => p.points,
-            kings: p => p.kings || 0,
-            jokers: p => p.jokers || 0,
-            crossed: p => p.crossed || 0,
-            net: p => netOf(p),
-            ppgw: p => p.ppgw
-        };
-        const sortBy = lbVal[state.lbSort] ? state.lbSort : 'points';
+        const stats = seasonStats(season);
+        const sortBy = LB_VAL[state.lbSort] ? state.lbSort : 'points';
         const tieChain = ['points', 'kings', 'ppgw'];
         const sortKeys = [sortBy, ...tieChain.filter(k => k !== sortBy)];
-        const leaderboard = Object.entries(stats)
-            .map(([name, s]) => ({ name, ...s, ppgw: (s.weeks ? s.points / s.weeks : 0) }))
-            .sort((a, b) => {
-                for (const k of sortKeys) { const d = lbVal[k](b) - lbVal[k](a); if (d) return d; }
-                return a.name.localeCompare(b.name);
-            });
+        const leaderboard = rankList(stats, sortKeys);
+
+        // Rank movement: this week's standings against the standings as they
+        // stood before it. Only meaningful once the latest week's points are in.
+        const lastWk = season[season.length - 1];
+        const lastScored = !!(lastWk && lastWk.finalTally && Object.keys(lastWk.finalTally).length);
+        const showMove = season.length > 1 && lastScored;
+        const wkLabel = 'W' + (lastWk ? lastWk.week : '');
+        const prevRank = {}, prevPtsRank = {};
+        if (showMove) {
+            const prevStats = seasonStats(season.slice(0, -1));
+            rankList(prevStats, sortKeys).forEach((p, i) => { prevRank[p.name] = i + 1; });
+            rankList(prevStats, ['points', 'kings', 'ppgw']).forEach((p, i) => { prevPtsRank[p.name] = i + 1; });
+        }
+        // undefined -> nothing to show, null -> new to the board, else places gained.
+        const deltaFrom = (map, name, place) => !showMove ? undefined : (map[name] ? map[name] - place : null);
 
         if (leaderboard.length) {
             // The podium always ranks by points, whatever column the table is sorted on.
             const byPoints = leaderboard.slice().sort((a, b) =>
                 (b.points - a.points) || ((b.kings || 0) - (a.kings || 0)) || (b.ppgw - a.ppgw) || a.name.localeCompare(b.name));
-            html += podiumHtml(byPoints);
+            html += podiumHtml(byPoints, (p, n) => moveChip(deltaFrom(prevPtsRank, p.name, n), wkLabel, 'pmove'));
 
             const view = ['weekly', 'chart', 'net'].includes(state.lbView) ? state.lbView : 'ranking';
             // Clickable, sortable header cell. Active column shows a caret.
@@ -2172,7 +2229,8 @@ function renderSeasonTab() {
                     '<td class="col-name"><div class="name-cell">' +
                     '<span class="lb-rank ' + (i === 0 ? 'r1' : i === 1 ? 'r2' : i === 2 ? 'r3' : '') + '">' + (i + 1) + '</span>' +
                     avatarHtml(p.name, 'sm') +
-                    '<span class="nm"><span class="nt"><span>' + nameHtml(p.name) + '</span>' + guestTag(p.name) + '</span>' +
+                    '<span class="nm"><span class="nt"><span>' + nameHtml(p.name) + '</span>' + guestTag(p.name) +
+                    moveChip(deltaFrom(prevRank, p.name, i + 1), wkLabel) + '</span>' +
                     '<span class="lb-sub">' + p.roundWins + ' wins \u00b7 ' + p.weeks + ' wks</span></span>' +
                     '</div></td>' +
                     '<td class="' + (sortBy === 'kings' ? 'sorted' : '') + '">' + (p.kings || 0) + '</td>' +
@@ -2183,7 +2241,12 @@ function renderSeasonTab() {
                     '<td class="lb-pts-cell ' + (sortBy === 'points' ? 'sorted' : '') + '" style="color:' + (p.points >= 0 ? 'var(--green)' : 'var(--red)') + '">' + round2(p.points) + '</td>' +
                     '</tr>').join('') +
                 '</tbody></table></div>' +
-                '';
+                (showMove
+                    ? '<div class="hint mv-legend">' +
+                      '<span class="mv up">' + icon('caret', 'mv-i') + '</span> up &middot; ' +
+                      '<span class="mv down">' + icon('caret', 'mv-i') + '</span> down &middot; ' +
+                      'places moved after ' + esc(wkLabel) + '</div>'
+                    : '');
 
             // Weekly breakdown: "points won" (badges add no points).
             const cellFor = (w, p) => {

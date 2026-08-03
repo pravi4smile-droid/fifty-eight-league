@@ -40,6 +40,16 @@ Each week card on the **Season** tab has an **Edit points** button. For manually
 entered weeks you can change the team scores (which re-apply to everyone, minus
 any overrides); for live-tracked weeks you can adjust each player's tally.
 
+### Rank movement
+
+Once the latest week's points tally is entered, the leaderboard shows each
+player's movement next to their name: **▲ green** for places gained, **▼ red**
+for places lost, a grey dash for no change, and **NEW** for a first appearance.
+The comparison is against the standings as they stood *before* that week, so it
+answers "who moved after this week's games". Note a player can gain points and
+still drop a place if newcomers land above them. The podium shows the same
+movement by points; the table's arrows follow whichever column it's sorted by.
+
 ### King Maker & Joker badges (12-0 rounds)
 
 In both the "Add a past game day" and "Edit points" forms you can record **12-0
