@@ -25,7 +25,8 @@ Five tabs along the bottom:
   **Edit points** on any past week.
 - **Roster** — your regular players. Add once; tap ✎ to **rename** (the change
   propagates through all past games) or × to remove (history is kept).
-- **Data** — export/import a JSON backup, view raw data, sign out.
+- **Data** — **History** of every change, export/import a JSON backup, view raw
+  data, set who this device is, sign out.
 
 ### Add a past game day
 
@@ -66,6 +67,24 @@ winning team:
 A week can have several 12-0 rounds (e.g. one 12-0 and one 0-12). The leaderboard
 shows each player's total 👑 / 🃏 / ❌🃏 counts. Badges are for bragging rights
 only — they do not affect points.
+
+### History — who changed what
+
+The **Data** tab has a **History** card listing every change, newest first,
+grouped by day: a game day added, a week's points edited, a player added,
+renamed or marked a guest. Each entry names what changed in plain language —
+`Team score 12–6 → 14–4`, `Anand 12 → 14`, `Ravi lifted their Joker` — so you
+can tell what a week looked like before someone touched it.
+
+The log is built **on the server**, by diffing each save against what was
+already stored. Nothing in the app can skip it, and it covers changes made on
+anyone's phone, not just yours. The last 500 entries are kept.
+
+Because everyone shares one login, the server can't tell the devices apart on
+its own, so each device says who it is: the app asks for a name the first time
+you sign in and sends it with every save. Change it any time on the **Data**
+tab. It's on the honour system — good for *"who edited week 7?"*, not an
+identity check.
 
 ## Deploy to Vercel (one time, ~5 minutes)
 
@@ -131,6 +150,8 @@ file:
 - `roster.json` — the player names
 - `season.json` — an index that references each week (`{ id, week, date, key, hash }`)
 - `weeks/week-<id>.json` — one blob per game week
+- `audit.json` — the change history (`{ at, actor, action, lines }`), read back
+  with `GET /api/data?audit=1`
 
 The `/api/data` function assembles these into the single `{ season, roster }`
 object the app uses, and on save it splits them back out — rewriting only the

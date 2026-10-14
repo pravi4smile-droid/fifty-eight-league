@@ -4,11 +4,13 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { AUDIT_MAX, diffData, cleanActor } from './lib/audit.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PORT = process.env.PORT || 3000;
 const DATA_DIR = path.join(__dirname, 'data');
 const DATA_FILE = path.join(DATA_DIR, 'thuruppu-data.json');
+const AUDIT_FILE = path.join(DATA_DIR, 'audit.json');
 
 // Load a local .env file (git-ignored) for dev credentials — no secrets in code.
 const ENV_FILE = path.join(__dirname, '.env');
@@ -32,6 +34,24 @@ if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 function readData() {
     try { return JSON.parse(fs.readFileSync(DATA_FILE, 'utf8')); }
     catch (e) { return { season: [], roster: [] }; }
+}
+
+function readAudit() {
+    try { return JSON.parse(fs.readFileSync(AUDIT_FILE, 'utf8')).entries || []; }
+    catch (e) { return []; }
+}
+
+// Append what changed between `before` and `after`. Mirrors the audit log the
+// Blob API keeps in production, so a change looks the same in both places.
+function appendAudit(before, after, actor) {
+    try {
+        const entries = diffData(before, after);
+        if (!entries.length) return;
+        const at = new Date().toISOString();
+        let log = readAudit().concat(entries.map(e => ({ at, actor, action: e.action, lines: e.lines })));
+        if (log.length > AUDIT_MAX) log = log.slice(log.length - AUDIT_MAX);
+        fs.writeFileSync(AUDIT_FILE, JSON.stringify({ entries: log }, null, 2));
+    } catch (e) { /* the log never fails a save */ }
 }
 
 function readBody(req) {
@@ -62,11 +82,16 @@ const server = http.createServer(async (req, res) => {
 
     if (url === '/api/data') {
         if (req.headers['x-auth-token'] !== TOKEN) return json(res, 401, { ok: false, error: 'unauthorized' });
-        if (req.method === 'GET') return json(res, 200, readData());
+        if (req.method === 'GET') {
+            if (/[?&]audit=1(&|$)/.test(req.url)) return json(res, 200, { entries: readAudit() });
+            return json(res, 200, readData());
+        }
         if (req.method === 'POST') {
             const data = await readBody(req);
             if (!data) return json(res, 400, { ok: false, error: 'invalid body' });
+            const before = readData();
             fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2));
+            appendAudit(before, data, cleanActor(req.headers['x-actor']));
             return json(res, 200, { ok: true, savedAt: new Date().toISOString() });
         }
         return json(res, 405, { ok: false });

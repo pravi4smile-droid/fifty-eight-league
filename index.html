@@ -989,6 +989,37 @@ textarea {
 }
 .toast.show { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 
+/* ============================================================
+   History (audit log)
+   ============================================================ */
+.audit-list { display: flex; flex-direction: column; }
+.audit-item { padding: 11px 0; border-bottom: 1px solid var(--hair); }
+.audit-item:last-child { border-bottom: none; }
+.audit-head {
+    display: flex; align-items: baseline; gap: 8px;
+    flex-wrap: wrap; margin-bottom: 5px;
+}
+.audit-what { font-size: 13.5px; font-weight: 700; }
+.audit-when { font-size: 11.5px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+.audit-who {
+    font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+    background: var(--field); border: 1px solid var(--hair); color: var(--text-2);
+}
+.audit-lines { margin: 0; padding: 0; list-style: none; }
+.audit-lines li {
+    font-size: 12.5px; color: var(--text-2); line-height: 1.55;
+    padding-left: 11px; position: relative;
+}
+.audit-lines li::before {
+    content: ''; position: absolute; left: 0; top: 8px;
+    width: 4px; height: 4px; border-radius: 50%; background: var(--muted); opacity: .5;
+}
+.audit-day {
+    font-size: 11px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--muted); padding: 13px 0 4px;
+}
+.audit-day:first-child { padding-top: 0; }
+
 @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after { animation-duration: .001ms !important; transition-duration: .001ms !important; }
 }
@@ -1115,7 +1146,9 @@ let state = {
     past: { date: '', team: {}, score1: '', score2: '', points: {}, ko: [] },
     shuffle: { picked: {}, team1: [], team2: [], done: false, tol: 0.2 },
     editWeek: null,
-    editBuf: null
+    editBuf: null,
+    audit: null,          // null = not fetched yet, [] = fetched and empty
+    auditBusy: false
 };
 
 /* ---------- persistence ---------- */
@@ -1143,7 +1176,27 @@ function localSave() {
 /* ---------- auth ---------- */
 function getToken() { try { return localStorage.getItem('thuruppu-token') || ''; } catch (e) { return ''; } }
 function setToken(t) { try { t ? localStorage.setItem('thuruppu-token', t) : localStorage.removeItem('thuruppu-token'); } catch (e) {} }
-function authHeaders() { return { 'Content-Type': 'application/json', 'x-auth-token': getToken() }; }
+
+/* Everyone shares one login, so the server can't tell who saved what. This
+   device says who it is, and the server records that name in the history.
+   It's the honour system — handy for "who changed week 7", not an identity
+   check. Percent-encoded because headers can't carry non-latin1 characters. */
+function getWho() { try { return localStorage.getItem('thuruppu-who') || ''; } catch (e) { return ''; } }
+function setWho(n) { try { n ? localStorage.setItem('thuruppu-who', n) : localStorage.removeItem('thuruppu-who'); } catch (e) {} }
+function askWho() {
+    const name = (prompt('Whose device is this? Your name shows up next to the changes you make.', getWho()) || '').trim();
+    if (!name) return;
+    setWho(name.slice(0, 40));
+    render();
+    toast('Changes from this device will show as ' + getWho());
+}
+function authHeaders() {
+    return {
+        'Content-Type': 'application/json',
+        'x-auth-token': getToken(),
+        'x-actor': encodeURIComponent(getWho() || 'someone')
+    };
+}
 
 function showLogin(show) {
     document.getElementById('login-overlay').style.display = show ? 'flex' : 'none';
@@ -1166,6 +1219,7 @@ async function doLogin() {
             showLogin(false);
             toast('Welcome!');
             serverLoad();
+            if (!getWho()) askWho();
         } else {
             err.textContent = out.error || 'Wrong username or password';
         }
@@ -1176,6 +1230,7 @@ async function doLogin() {
 
 function logout() {
     setToken('');
+    state.audit = null;
     showLogin(true);
     toast('Signed out');
 }
@@ -1213,8 +1268,31 @@ function serverSave() {
                 return;
             }
             setOnline(true);
+            // The save just wrote a history entry — pick it up if it's on screen.
+            if (state.activeTab === 'data') loadAudit();
         } catch (e) { setOnline(false, 'network error'); }
     }, 400);
+}
+
+/* ---------- history ---------- */
+// The log lives on the server: it's built there by diffing each save against
+// what was already stored, so it covers every device and can't be skipped.
+async function loadAudit(announce) {
+    if (!getToken() || state.auditBusy) return;
+    state.auditBusy = true;
+    if (announce) renderDataTab();
+    try {
+        const res = await fetch(API + '?audit=1', { headers: authHeaders() });
+        if (res.status === 401) { showLogin(true); return; }
+        if (!res.ok) throw new Error();
+        const out = await res.json();
+        state.audit = Array.isArray(out.entries) ? out.entries.slice().reverse() : [];
+    } catch (e) {
+        if (announce) toast('Could not load history');
+    } finally {
+        state.auditBusy = false;
+        if (state.activeTab === 'data') renderDataTab();
+    }
 }
 let wasOnline = null;
 // No persistent status badge — sync is silent while it works. A failed save
@@ -1632,6 +1710,7 @@ function switchTab(name) {
     });
     document.querySelectorAll('.tabbar button').forEach(b => b.classList.toggle('active', b.dataset.tab === name));
     render();
+    if (name === 'data' && state.audit === null) loadAudit();
     // Restart the panel's entrance animation on every switch.
     const panel = document.getElementById('tab-' + name);
     panel.classList.remove('tab-panel');
@@ -2384,6 +2463,50 @@ function weekEditHtml(w) {
         '</div></div>';
 }
 
+// 'Today' / 'Yesterday' / '12 Oct 2026' for the history day headings.
+function auditDay(d) {
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    const that = new Date(d); that.setHours(0, 0, 0, 0);
+    const days = Math.round((today - that) / 86400000);
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Yesterday';
+    return that.toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+}
+function auditTime(d) {
+    return d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+function auditHtml() {
+    if (state.audit === null) {
+        return '<div class="meta">' +
+            (state.auditBusy || getToken() ? 'Loading history…' : 'History is kept on the server — sign in to see it.') +
+            '</div>';
+    }
+    if (!state.audit.length) {
+        return '<div class="meta">Nothing recorded yet. From now on, every change saved from any device lands here.</div>';
+    }
+
+    let lastDay = '';
+    const rows = state.audit.map(e => {
+        const when = new Date(e.at);
+        const day = isNaN(when) ? '' : auditDay(when);
+        const heading = day && day !== lastDay ? '<div class="audit-day">' + esc(day) + '</div>' : '';
+        lastDay = day || lastDay;
+        const lines = (e.lines || []).map(l => '<li>' + esc(l) + '</li>').join('');
+        return heading +
+            '<div class="audit-item">' +
+            '<div class="audit-head">' +
+            '<span class="audit-what">' + esc(e.action || 'Changed') + '</span>' +
+            '<span class="audit-who">' + esc(e.actor || 'someone') + '</span>' +
+            '<span class="audit-when">' + (isNaN(when) ? '' : esc(auditTime(when))) + '</span>' +
+            '</div>' +
+            (lines ? '<ul class="audit-lines">' + lines + '</ul>' : '') +
+            '</div>';
+    }).join('');
+
+    return '<div class="audit-list">' + rows + '</div>';
+}
+
 function renderDataTab() {
     const weeks = (state.data.season || []).length;
     const players = (state.data.roster || []).length;
@@ -2406,11 +2529,23 @@ function renderDataTab() {
         '</div>' +
         '<input id="import-file" type="file" accept=".json" onchange="importData(event)" style="display:none;">' +
         '</div>' +
+        '<div class="card"><h3>' + icon('calendar') + 'History</h3>' +
+        auditHtml() +
+        '<button class="btn subtle" style="margin-top:12px;" onclick="loadAudit(true)">' + icon('refresh') +
+        (state.auditBusy ? 'Refreshing…' : 'Refresh') + '</button>' +
+        '<div class="hint">What changed, when, and which device said it was them. ' +
+        'Built on the server from each save, so changes made on any phone show up here.</div></div>' +
         '<div class="card"><h3>' + icon('copy') + 'Raw data</h3>' +
         '<textarea readonly>' + esc(JSON.stringify(state.data, null, 2)) + '</textarea>' +
         '<button class="btn subtle" style="margin-top:10px;" onclick="copyJson()">' + icon('copy') + 'Copy to clipboard</button></div>' +
         '<div class="card"><h3>' + icon('logOut') + 'Account</h3>' +
-        '<button class="btn danger" onclick="logout()">' + icon('logOut') + 'Sign out</button></div>';
+        '<div class="roster-list"><div class="roster-item">' +
+        (getWho() ? avatarHtml(getWho()) : '') +
+        '<span class="rname">' + (getWho() ? nameHtml(getWho()) : '<span class="meta">Nobody set</span>') + '</span>' +
+        '<button class="mini-btn" title="Change who this device is" onclick="askWho()">' + icon('pencil') + '</button>' +
+        '</div></div>' +
+        '<div class="hint">Changes from this device are logged under this name.</div>' +
+        '<button class="btn danger" style="margin-top:12px;" onclick="logout()">' + icon('logOut') + 'Sign out</button></div>';
 }
 
 function render() {
